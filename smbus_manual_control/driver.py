@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import smbus
+import random
 import time
 import typing
 import enum
@@ -24,6 +25,7 @@ JOINT_OFFSET = (
 TIME_REG_ID = 0x1e
 ANGLE_WRITE_REG_ID = 0x1d
 ANGLE_READ_REG_ID = 0x37
+TORQUE_REG_ID = 0x1A
 
 class Arm_Dev:
     def __mWrite( self, _mReg: int, _mData: typing.List[ int ] ):
@@ -48,7 +50,7 @@ class Arm_Dev:
         for angle in joint_angles_int:
             data_buf.append( ( angle >> 8 ) & 0xff )
             data_buf.append( angle & 0xff )
-        
+
         self.__mWrite( TIME_REG_ID, [ 0x0, 0x0 ] )
         self.__mWrite( ANGLE_WRITE_REG_ID, data_buf )
     
@@ -56,16 +58,23 @@ class Arm_Dev:
         self.__mWriteByte( ANGLE_READ_REG_ID, _aJointNum + 1 )
     
     def __mCompletePosRead( self, _aJointNum: int ) -> float:
-        raw  = self.__mReadWord( ANGLE_READ_REG_ID )
+        raw = self.__mReadWord( ANGLE_READ_REG_ID )
         raw = ( raw >> 8 & 0xff ) | ( raw << 8 & 0xff00 )
         return ( raw - JOINT_OFFSET[ _aJointNum ] ) / ARM_SCALING_FACTOR
+
+    def __mUpdateTorque( self, _aTorque: bool ):
+        if _aTorque:
+            self.__mWriteByte( TORQUE_REG_ID, 0x01 )
+        else:
+            self.__mWriteByte( TORQUE_REG_ID, 0x00 )
 
     def __mIOFunc( self ):
         joint_id = 0
         _aJointsRead = []
-        count = 0
-        initial = time.clock_gettime(0)
         while not self.__mShutdown:
+            if self.__mSetTorque != self.__mCurrTorque:
+                self.__mUpdateTorque( self.__mSetTorque )
+                self.__mCurrTorque = self.__mSetTorque
             self.__mStartPosRead( joint_id )
             self.__mUpdateJoints( self.__mAngles )
             time.sleep( 0.002 )
@@ -75,58 +84,48 @@ class Arm_Dev:
             joint_id += 1
             if( joint_id == 6 ):
                 joint_id = 0
-                print( _aJointsRead )
+                self.__mAngleReadHandler( _aJointsRead )
                 _aJointsRead = []
-                print("Hz: " + str( count / (time.clock_gettime(0)-initial)))
             time.sleep( 0.002 )
-            count += 1
-        print("shutting down")
+
+    def set_torque( self, _aTorque: bool ):
+        self.__mSetTorque = _aTorque
 
     def set_joints( self, _aJointAngles: typing.List[ float ] ):
         self.__mAngles = _aJointAngles
 
-    def start( self ):
+    def start( self, _aAngleReadHandler: typing.Callable ):
+        self.__mSetTorque = False
+        self.__mCurrTorque = None
         self.__mBus = smbus.SMBus( 1 )
+        self.__mAngleReadHandler = _aAngleReadHandler
         self.__mAngles = [ 0.0 ] * 6
         self.__mShutdown = False
         self.__mIOThread = threading.Thread( target=self.__mIOFunc )
         self.__mIOThread.start()
     
     def stop( self ):
-        print("stop")
         self.__mShutdown = True
         self.__mIOThread.join()
 
-try:
-    arm = Arm_Dev()
-    arm.start()
 
-    angle = 0.0
-    incr = 0.005
-    while True:
-        arm.set_joints( [ angle ] * 6 )
-        angle += incr
-        if( math.fabs( angle ) > 0.2 ):
-            incr = -incr
+if __name__ == "__main__":
+    def handle_angles( angles ):
+        print( angles )
 
-        time.sleep(0.01)
+    try:
+        arm = Arm_Dev()
+        arm.start( handle_angles )
 
-except KeyboardInterrupt:
-    arm.stop()
+        angle = 0.0
+        incr = 0.0001
+        while True:
+            arm.set_joints( [ angle ] * 6 )
+            angle += incr
+            if( math.fabs( angle ) > 0.2 ):
+                incr = -incr
 
-'''
-angle = 0.0
-incr = 0.0005
-initial = time.clock_gettime(0)
-count = 1
-while True:
-    arm.set_joints( [ angle ] * 6 )
-    angle += incr
-    if( math.fabs( angle ) > 0.2 ):
-        incr = -incr
-    count += 1
-    if( count % 1000 == 0 ):
-        print( time.clock_gettime(0) - initial )
-        initial = time.clock_gettime(0)
-'''
+            time.sleep(0.001)
 
+    except KeyboardInterrupt:
+        arm.stop()
