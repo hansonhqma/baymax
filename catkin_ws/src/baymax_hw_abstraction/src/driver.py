@@ -60,8 +60,6 @@ class Arm_Dev:
             data_buf.append( ( angle >> 8 ) & 0xff )
             data_buf.append( angle & 0xff )
 
-        #print( data_buf )
-
         self.__mWrite( TIME_REG_ID, [ 0x0, 0x0 ] )
         self.__mWrite( ANGLE_WRITE_REG_ID, data_buf )
     
@@ -81,7 +79,8 @@ class Arm_Dev:
 
     def __mIOFunc( self ):
         joint_id = 0
-        _aJointsRead = []
+        _JointsRead = [ 0 ] * 6
+        _JointsSkipped = [ 0 ] * 6
         while not self.__mShutdown:
             if self.__mSetTorque != self.__mCurrTorque:
                 self.__mUpdateTorque( self.__mSetTorque )
@@ -89,14 +88,18 @@ class Arm_Dev:
             self.__mStartPosRead( joint_id )
             self.__mUpdateJoints( self.__mAngles )
             time.sleep( 0.002 )
-            _aJointsRead.append(
-                self.__mCompletePosRead( joint_id )
-            )
+            temp_j = self.__mCompletePosRead( joint_id )
+            if( math.fabs( temp_j - _JointsRead[joint_id] ) < 1 or
+                _JointsSkipped[joint_id] > 0 ):
+                _JointsSkipped[joint_id] = 0
+                _JointsRead[joint_id] = temp_j
+            else:
+                print("Single value switch (joint " + str( joint_id ) + "): " + str(math.fabs( temp_j - _JointsRead[joint_id] ) ) )
+                _JointsSkipped[joint_id] += 1
             joint_id += 1
             if( joint_id == 6 ):
                 joint_id = 0
-                self.__mAngleReadHandler( _aJointsRead )
-                _aJointsRead = []
+                self.__mAngleReadHandler( _JointsRead )
             time.sleep( 0.002 )
 
     def set_torque( self, _aTorque: bool ):
