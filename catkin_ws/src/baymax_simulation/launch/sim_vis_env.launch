@@ -1,0 +1,4 @@
+<launch>
+  <include file="$(find baymax_simulation)/launch/sim.launch" />
+  <include file="$(find baymax_visualization)/launch/vis.launch" />
+</launch>

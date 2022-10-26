@@ -1,0 +1,4 @@
+<launch>
+  <node name="test1" pkg="baymax_simulation" type="node.py" output="screen"/>
+  <node name="test2" pkg="baymax_hw_abstraction" type="raw_to_rviz.py" output="screen"/>
+</launch>
