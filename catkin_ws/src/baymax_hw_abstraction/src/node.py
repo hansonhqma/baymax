@@ -15,7 +15,6 @@ SET_TORQUE_MSG = "/base/set_torque"
 SET_JOINTS_VEL_MSG = '/base/set_joints_vel'
 
 CURRENT_ANGLES = None
-VEL_SIGNATURE = None
 
 def handle_read_angles( angles ):
     global CURRENT_ANGLES
@@ -36,10 +35,6 @@ def handle_write_angles( msg ):
 
 def handle_write_vel( msg ):
     global CURRENT_ANGLES
-    global VEL_SIGNATURE
-    VEL_SIGNATURE = msg.data
-    if msg.data = [0.0]*6: # stop
-        return:
 
     print("new vel signer:", VEL_SIGNATURE)
 
@@ -48,13 +43,12 @@ def handle_write_vel( msg ):
             if( type( angle ) != float ):
                 print( "Error, velocity type invalid" )
                 return
-        while VEL_SIGNATURE == msg.data: # while i am still the top caller
-                new_angles = [msg.data[i] + CURRENT_ANGLES[i] for i in range(6)]
-                arm.set_joints( new_angles )
-                rate.sleep()
+        new_angles = [msg.data[i] + CURRENT_ANGLES[i] for i in range(6)]
+        print("writing", new_angles)
+        arm.set_joints( new_angles )
+        rate.sleep()
     else:
         print( "Error, velocity message invalid" )
-    
 
 def handle_setting_torque( msg ):
     arm.set_torque( msg.data )
