@@ -36,8 +36,6 @@ def handle_write_angles( msg ):
 def handle_write_vel( msg ):
     global CURRENT_ANGLES
 
-    print("new vel signer:", VEL_SIGNATURE)
-
     if( len( msg.data ) == 6 ):
         for angle in msg.data:
             if( type( angle ) != float ):
