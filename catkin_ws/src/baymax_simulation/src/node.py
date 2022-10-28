@@ -10,9 +10,7 @@ import threading
 NODE_NAME = "smbus_sim_node"
 READ_JOINT_MSG = "/base/read_joints"
 SET_JOINT_MSG = "/base/set_joints"
-SET_JOINT_VEL = "/base/set_joints_vel"
-
-VEL_SIGNATURE = 0
+SET_JOINT_STEP = "/base/set_joints_step"
 
 def write_angles():
     while not terminate:
@@ -23,31 +21,18 @@ def write_angles():
 
 def handle_write_angles( msg ):
     global joints
-    joints = msg.data
-    print("rx")
+    joints = [x%(2*math.pi) for x in msg.data]
 
-def handle_write_vel( msg ):
+def handle_write_step( msg ):
     global joints
-    global VEL_SIGNATURE
-    global rate
 
-    VEL_SIGNATURE += 1
-    mysignature = VEL_SIGNATURE
-    
-    print("new velocity signature:", VEL_SIGNATURE)
-
-    if list(msg.data)== [0.0] * 6: # stop
-        return
-
-    while mysignature == VEL_SIGNATURE:
-        new_joints = [(msg.data[i] + joints[i])%(2*math.pi) for i in range(6)]
-        joints = new_joints
-        time.sleep(0.02)
+    new_joints = [(msg.data[i] + joints[i])%(2*math.pi) for i in range(6)]
+    joints = new_joints
 
 rospy.init_node( NODE_NAME )
 pub = rospy.Publisher( READ_JOINT_MSG, Float32MultiArray, queue_size=10 )
 rospy.Subscriber( SET_JOINT_MSG, Float32MultiArray, handle_write_angles )
-rospy.Subscriber( SET_JOINT_VEL, Float32MultiArray, handle_write_vel )
+rospy.Subscriber( SET_JOINT_STEP, Float32MultiArray, handle_write_step )
 
 terminate = False
 joints = [ 0.0 ] * 6
@@ -57,7 +42,6 @@ t.start()
 
 try:
     rospy.spin()
-    rate = rospy.Rate(50)
 except KeyboardInterrupt:
     pass
 finally:
