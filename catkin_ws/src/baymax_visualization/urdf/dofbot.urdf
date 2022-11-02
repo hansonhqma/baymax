@@ -2,7 +2,7 @@
 <robot name="dofbot">
     <link name="base_link">
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/base_link.STL" />
             </geometry>
@@ -11,7 +11,7 @@
             </material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/base_link.STL" />
             </geometry>
@@ -19,7 +19,7 @@
     </link>
     <link name="link1">
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link1.STL" />
             </geometry>
@@ -28,7 +28,7 @@
             </material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link1.STL" />
             </geometry>
@@ -43,7 +43,7 @@
     </joint>
     <link name="link2">
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 1.5708 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link2.STL" />
             </geometry>
@@ -52,22 +52,22 @@
             </material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 1.5708 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link2.STL" />
             </geometry>
         </collision>
     </link>
     <joint name="joint2" type="revolute">
-        <origin xyz="0 -0.00031873 0.04145" rpy="0 1.5708 0" />
+        <origin xyz="0 -0.00031873 0.04145" rpy="0 0 0" />
         <parent link="link1" />
         <child link="link2" />
-        <axis xyz="0 0 1" />
+        <axis xyz="0 -1 0" />
         <limit effort="30" velocity="1.0" lower="-1.5708" upper="1.5708"/>
     </joint>
     <link name="link3">
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 1.5708 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link3.STL" />
             </geometry>
@@ -76,22 +76,22 @@
             </material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 1.5708 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link3.STL" />
             </geometry>
         </collision>
     </link>
     <joint name="joint3" type="revolute">
-        <origin xyz="-0.08285 0 0" rpy="0 0 0" />
+        <origin xyz="0 0 0.08285" rpy="0 0 0" />
         <parent link="link2" />
         <child link="link3" />
-        <axis xyz="0 0 1" />
+        <axis xyz="0 -1 0" />
         <limit effort="30" velocity="1.0" lower="-1.5708" upper="1.5708"/>
     </joint>
     <link name="link4">
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 1.5708 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link4.STL" />
             </geometry>
@@ -100,23 +100,23 @@
             </material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 1.5708 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link4.STL" />
             </geometry>
         </collision>
     </link>
     <joint name="joint4" type="revolute">
-        <origin xyz="-0.08285 0 0" rpy="0 0 0.0083081" />
+        <origin xyz="0 0 0.08285" rpy="0 0 0" />
         <parent link="link3" />
         <child link="link4" />
-        <axis xyz="0 0 1" />
+        <axis xyz="0 -1 0" />
         <limit effort="30" velocity="1.0" lower="-1.5708" upper="1.5708"/>
     </joint>
     <!-- link5 -->
     <link name="link5">
         <visual>
-            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <origin xyz="0 0 0" rpy="0 0 -1.5708"/>
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link5.STL"/>
             </geometry>
@@ -125,7 +125,7 @@
             </material>
         </visual>
         <collision>
-            <origin xyz="0 0 0" rpy="0 0 0" />
+            <origin xyz="0 0 0" rpy="0 0 -1.5708" />
             <geometry>
                 <mesh filename="package://baymax_visualization/meshes/link5.STL" />
             </geometry>
@@ -133,7 +133,7 @@
     </link>
     <!-- joint5 -->
     <joint name="joint5" type="revolute">
-        <origin xyz="-0.07385 -0.001 0" rpy="0 -1.57 0"/>
+        <origin xyz="0 0 0.07385" rpy="0 0 0"/>
         <axis xyz="0 0 1"/>
         <parent link="link4"/>
         <child link="link5"/>

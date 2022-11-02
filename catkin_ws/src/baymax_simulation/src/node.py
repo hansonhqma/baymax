@@ -21,7 +21,8 @@ def write_angles():
 
 def handle_write_angles( msg ):
     global joints
-    joints = [x%(2*math.pi) for x in msg.data]
+    print(joints)
+    joints = msg.data
 
 def handle_write_step( msg ):
     global joints

@@ -1,0 +1,3 @@
+<launch>
+  <node name="ik" pkg="baymax_util" type="ik_pseudo_inv.py" output="screen"/>
+</launch>
