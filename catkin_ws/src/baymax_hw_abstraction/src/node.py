@@ -51,6 +51,7 @@ def handle_setting_torque( msg ):
 rospy.init_node( NODE_NAME )
 pub = rospy.Publisher( READ_JOINT_MSG, Float32MultiArray, queue_size=10 )
 rospy.Subscriber( SET_JOINT_MSG, Float32MultiArray, handle_write_angles )
+rospy.Subscriber( MOVE_JOINT_MSG, Float32MultiArray, handle_move_angles )
 rospy.Subscriber( SET_TORQUE_MSG, Bool, handle_setting_torque )
 
 arm = driver.Arm_Dev()
