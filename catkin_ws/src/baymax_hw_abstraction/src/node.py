@@ -10,12 +10,17 @@ from std_msgs.msg import Float32MultiArray
 NODE_NAME = "smbus_node"
 READ_JOINT_MSG = "/base/read_joints"
 SET_JOINT_MSG = "/base/set_joints"
+MOVE_JOINT_MSG = "/base/move_joints"
 SET_TORQUE_MSG = "/base/set_torque"
 
+CURRENT_ANGLES = None
+
 def handle_read_angles( angles ):
+    global CURRENT_ANGLES
     msg = Float32MultiArray()
     msg.data = tuple( angles )
     pub.publish( msg )
+    CURRENT_ANGLES = angles
 
 def handle_write_angles( msg ):
     if( len( msg.data ) == 6 ):
@@ -24,6 +29,19 @@ def handle_write_angles( msg ):
                 print( "Error, angle type invalid" )
                 return
         arm.set_joints( list( msg.data ) )
+    else:
+        print( "Error, angle message invalid" )
+
+def handle_move_angles( msg ):
+    global CURRENT_ANGLES
+
+    if( len( msg.data ) == 6 ):
+        for angle in msg.data:
+            if( type( angle ) != float ):
+                print( "Error, angle type invalid" )
+                return
+        new_angles = [msg.data[i] + CURRENT_ANGLES[i] for i in range(6)]
+        arm.set_joints(new_angles)
     else:
         print( "Error, angle message invalid" )
 
