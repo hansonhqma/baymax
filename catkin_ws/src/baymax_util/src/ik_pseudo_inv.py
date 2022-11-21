@@ -86,7 +86,7 @@ class robot:
             P_err = P_0i[-1] - _aTargetTrans
             # Put both of these values into a single error vector
             dx = np.ndarray( (6,) )
-            dx[0:3] = R_err.as_rotvec()
+            dx[0:3] = R_err.as_euler( "xyz" )
             dx[3:6] = P_err
 
             # Perform the "pseudo inverse" of the jacobian with the
@@ -141,9 +141,18 @@ pub = rospy.Publisher( SET_JOINT_MSG, Float32MultiArray, queue_size=10 )
 # Perform inverse kinematics
 rate = rospy.Rate(10)
 
+rot, trans = r.fk( np.array( [1.5,-1.5,2,-1.5,1] ) )
+print( rot[-1].as_matrix() )
+print( trans[-1] )
+
+rot, trans = r.fk( np.array( [ 7.28318528,  0.99999936,  1.00000134, -5.28318601, -5.28318534] ) )
+print( rot[-1].as_matrix() )
+print( trans[-1] )
+
 count = 0
 angles = np.array( [0,0,0,0,0] )
 while True:
+    """
     angles = r.ik(
         Rotation.from_rotvec( [ 0.3 * math.cos( count / 10 ), -0.3 * math.sin( count / 10 ), 0 ] ),
         #Rotation.from_rotvec( [ 0, 0, -count / 10 ] ),
@@ -151,6 +160,17 @@ while True:
         np.array( [ 0, 0, 0.35 + 0.03 * math.sin( count / 7 ) ] ),
         angles
     )
+    """
+    angles = r.ik(
+        Rotation.from_matrix(
+[[-0.81871302, -0.57110942,  0.0595233 ],
+ [ 0.3507186,  -0.41529034, 0.83936309],
+ [-0.45464871,  0.70807342,  0.54030231]]
+       ),
+        np.array( [0.01068017, 0.15060554, 0.25545391] ),
+        np.array( [0,0,0,0,0] )
+    )
+    print(angles)
     msg = Float32MultiArray()
     msg.data = tuple( angles ) + (0,)
     pub.publish( msg )
