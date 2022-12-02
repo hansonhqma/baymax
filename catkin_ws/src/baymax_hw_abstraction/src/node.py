@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 import driver
 import math
-import time
 import rospy
 from std_msgs.msg import Bool
 from std_msgs.msg import Float32MultiArray
 
-import pid
+from pathgen import squared_velocity_path
 
 # ROSpy node/msg names
 NODE_NAME = "smbus_node"
@@ -14,8 +13,7 @@ READ_JOINT_MSG = "/base/read_joints"
 SET_JOINT_MSG = "/base/set_joints"
 MOVE_JOINT_MSG = "/base/move_joints"
 SET_TORQUE_MSG = "/base/set_torque"
-
-SET_JOINT_PID_MSG = "/base/set_joints_pid"
+SET_JOINT_PATH_MSG = "/base/set_joints_path"
 
 CURRENT_ANGLES = None
 
@@ -49,27 +47,24 @@ def handle_move_angles( msg ):
     else:
         print( "Error, angle message invalid" )
 
-def handle_pid( msg ):
+def handle_path( msg ):
     global CURRENT_ANGLES
-    coeffs = (0.1, 0.1, 0.1)
-    step = 0.1 # rad
-    # make controllers with desired positions
-    joint_controllers = []
-    convergence = []
-    for i in range(6):
-        jpos = msg.data[i]
-        joint_controllers.append(pid.controller(*coeffs, target=jpos, epsilon=0.1))
-        convergence.append(joint_controllers[i]._converged)
+    lamda_max = 100
 
-    # while all not converged
-    while False in convergence:
-        new_angles = []
-        for i in range(6):
-            joint_gain = joint_controllers[i].gain(CURRENT_ANGLES[i])
-            new_angles.append(CURRENT_ANGLES + step*joint_gain)
-            convergence[i] = joint_controllers[i]._converged
-        arm.set_joints(new_angles)
+    joint_deltas = [msg.data[i] - CURRENT_ANGLES[i] for i in range(6)]
+
+    paths = [[squared_velocity_path(0, lamda_max, joint_deltas[i]) for i in range(6)]]
+    for i in range(1, lamda_max):
+        paths.append([paths[-1][j]+squared_velocity_path(i, lamda_max, joint_deltas[j]) for j in range(6)])
+    for i in range(lamda_max):
+        for j in range(6):
+            paths[i][j] += CURRENT_ANGLES[j]
+    
+    for jpos in paths:
+        arm.set_joints(jpos)
         rate.sleep()
+    
+
         
 
 def handle_setting_torque( msg ):
@@ -80,7 +75,7 @@ rospy.init_node( NODE_NAME )
 rate = rospy.Rate(50)
 pub = rospy.Publisher( READ_JOINT_MSG, Float32MultiArray, queue_size=10 )
 rospy.Subscriber( SET_JOINT_MSG, Float32MultiArray, handle_write_angles )
-rospy.Subscriber( SET_JOINT_PID_MSG, Float32MultiArray, handle_pid )
+rospy.Subscriber( SET_JOINT_PATH_MSG, Float32MultiArray, handle_path )
 rospy.Subscriber( MOVE_JOINT_MSG, Float32MultiArray, handle_move_angles )
 rospy.Subscriber( SET_TORQUE_MSG, Bool, handle_setting_torque )
 
