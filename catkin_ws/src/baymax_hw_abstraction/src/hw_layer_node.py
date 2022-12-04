@@ -4,6 +4,7 @@ import math
 import rospy
 from std_msgs.msg import Bool
 from std_msgs.msg import Float32MultiArray
+import geometry_msgs.msg
 
 import tinyik
 
@@ -13,11 +14,13 @@ from pathgen import squared_velocity_path
 
 chain = [[0, 0, 0.066], 'z', [0, 0, 0.0415], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0739]]
 dofbot = tinyik.Actuator(chain)
+dofbot_fk_only = tinyik.Actuator(chain)
 
 # ROSpy node/msg names
-NODE_NAME = "smbus_node"
+NODE_NAME = "hw_layer_node"
 
 READ_JOINT_MSG = "/base/read_joints"
+BASE_TO_TOOL_TF_MSG = "/tf/base_to_tool"
 
 SET_JOINT_MSG = "/base/set_joints"
 SET_JOINT_PATH_MSG = "/base/set_joints_path"
@@ -29,12 +32,24 @@ SET_TORQUE_MSG = "/base/set_torque"
 CURRENT_ANGLES = None
 
 def handle_read_angles( angles ):
+    # publish joint angles
     global CURRENT_ANGLES
     msg = Float32MultiArray()
     msg.data = tuple( angles )
-    pub.publish( msg )
+    joint_angle_publisher.publish( msg )
     CURRENT_ANGLES = angles
 
+    dofbot_fk_only.angles = angles
+    tf_basetotool = geometry_msgs.msg.PoseStamped()
+    tf_basetotool.header.stamp = "base to tool transform"
+    # build pose, position only for now, also maybe add rostime later?
+    tf_xyz = dofbot_fk_only.ee
+    tf_basetotool.pose.position.x = tf_xyz[0]
+    tf_basetotool.pose.position.y = tf_xyz[1]
+    tf_basetotool.pose.position.z = tf_xyz[2]
+
+    base_to_tool_tf_publisher.publish(tf_basetotool)
+    
 def handle_write_angles( msg ):
     if( len( msg.data ) == 6 ):
         for angle in msg.data:
@@ -107,10 +122,10 @@ def handle_xyz( msg ):
 def handle_setting_torque( msg ):
     arm.set_torque( msg.data )
 
-
 rospy.init_node( NODE_NAME )
 rate = rospy.Rate(50)
-pub = rospy.Publisher( READ_JOINT_MSG, Float32MultiArray, queue_size=10 )
+joint_angle_publisher = rospy.Publisher( READ_JOINT_MSG, Float32MultiArray, queue_size=10 )
+base_to_tool_tf_publisher = rospy.Publisher( BASE_TO_TOOL_TF_MSG, geometry_msgs.msg.PoseStamped, queue_size=10 )
 rospy.Subscriber( SET_JOINT_MSG, Float32MultiArray, handle_write_angles )
 rospy.Subscriber( SET_JOINT_PATH_MSG, Float32MultiArray, handle_path )
 rospy.Subscriber( MOVE_JOINT_MSG, Float32MultiArray, handle_move_angles )
