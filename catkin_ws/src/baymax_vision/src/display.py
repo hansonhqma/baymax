@@ -18,7 +18,7 @@ NODE_NAME = "baymax_vision"
 IMAGE_TOPIC = "/usb_cam/image_raw"
 CURRENT_TASK_TOPIC = "/state/current_task"
 TARGET_ID_TOPIC = "/state/target_id"
-BASE_TOOL_TF_TOPIC = "/tf/base_to_tool"
+BASE_CAM_TF_TOPIC = "/tf/base_to_cam"
 
 # published messages
 TARGET_POS_TF = "/vision/targetpos"
@@ -26,7 +26,7 @@ TARGET_POS_TF = "/vision/targetpos"
 # node state
 CURRENT_TASK = None
 TARGET_ID = None
-BASE_TOOL_TF = None
+BASE_CAM_TF = None
 
 # load image matrices
 calibration_matrix = np.load("/home/hanson/baymax/catkin_ws/src/baymax_vision/src/calibration_matrix.npy")
@@ -53,7 +53,7 @@ def image_handler( msg ):
     frame = bridge.imgmsg_to_cv2(msg, desired_encoding='passthrough')
     frame = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
-    if not CURRENT_TASK == 'identify_target' or TARGET_ID == None or BASE_TOOL_TF == None:
+    if not CURRENT_TASK == 'identify_target' or TARGET_ID == None or BASE_CAM_TF == None:
         # don't need to do anything
         cvm.quickshow(frame)
         return
@@ -68,8 +68,12 @@ def image_handler( msg ):
         rot_camtotarget, tf_camtotarget, _ = cv.aruco.estimatePoseSingleMarkers(corners[i], 0.02,
         calibration_matrix, distortion_coeffs)
 
+        # calculate base to target tf
+        
+
         cv.aruco.drawDetectedMarkers(frame, corners)
         cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, tf_camtotarget, 0.01)
+
 
     cvm.quickshow(frame)
 
@@ -86,14 +90,15 @@ def target_id_handler( msg ):
     global TARGET_ID
     TARGET_ID = msg.data
 
-def base_tool_tf_handler( msg ):
+def base_cam_tf_handler( msg ):
     # update base tool transformation
-    global BASE_TOOL_TF
-    BASE_TOOL_TF = msg
+    global BASE_CAM_TF
+    BASE_CAM_TF = msg
+
 
 rospy.Subscriber(IMAGE_TOPIC, sensor_msgs.msg.Image, image_handler)
 rospy.Subscriber(CURRENT_TASK_TOPIC, std_msgs.msg.String, current_task_handler)
 rospy.Subscriber(TARGET_ID_TOPIC, std_msgs.msg.String, target_id_handler)
-rospy.Subscriber(BASE_TOOL_TF_TOPIC, geometry_msgs.msg.Pose, base_tool_tf_handler)
+rospy.Subscriber(BASE_CAM_TF_TOPIC, geometry_msgs.msg.Pose, base_cam_tf_handler)
 rospy.spin()
 

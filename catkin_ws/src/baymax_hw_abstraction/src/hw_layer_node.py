@@ -42,19 +42,27 @@ def handle_read_angles( angles ):
     joint_angle_publisher.publish( msg )
     CURRENT_ANGLES = angles
 
+    # base to tool tf
     tf_basetotool = geometry_msgs.msg.Pose()
-    # build pose, position only for now, also maybe add rostime later?
-    tf_xyz_tool = naive_fk.tf_base_to_tool(*angles).reshape((3,))
-    tf_basetotool.position.x = tf_xyz_tool[0]
-    tf_basetotool.position.y = tf_xyz_tool[1]
-    tf_basetotool.position.z = tf_xyz_tool[2]
+    pos_tool = naive_fk.tf_base_to_tool(*angles).reshape((3))
+    rot_tool = naive_fk.rotmatrix_to_quaternion(naive_fk.rot_base_to_tool(*(angles[:5])))
+    tf_basetotool.position.x = pos_tool[0]
+    tf_basetotool.position.y = pos_tool[1]
+    tf_basetotool.position.z = pos_tool[2]
 
+    # base to cam tf
     tf_basetocam = geometry_msgs.msg.Pose()
-    # build pose, position only for now, also maybe add rostime later?
-    tf_xyz_cam = naive_fk.tf_base_to_cam(*angles).reshape((3,))
-    tf_basetotool.position.x = tf_xyz_cam[0]
-    tf_basetotool.position.y = tf_xyz_cam[1]
-    tf_basetotool.position.z = tf_xyz_cam[2]
+    pos_cam = naive_fk.tf_base_to_cam(*angles).reshape((3))
+    rot_cam = naive_fk.rotmatrix_to_quaternion(naive_fk.rot_base_to_cam(*(angles[:4])))
+
+    tf_basetocam.orientation.x = rot_cam[0]
+    tf_basetocam.orientation.y = rot_cam[1]
+    tf_basetocam.orientation.z = rot_cam[2]
+    tf_basetocam.orientation.w = rot_cam[3]
+    
+    tf_basetocam.position.x = pos_cam[0]
+    tf_basetocam.position.y = pos_cam[1]
+    tf_basetocam.position.z = pos_cam[2]
 
     base_to_tool_tf_publisher.publish(tf_basetotool)
     base_to_cam_tf_publisher.publish(tf_basetocam)

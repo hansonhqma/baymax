@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.spatial.transform import Rotation
 
 # links
 tf_base1 = np.array([[0], [0], [0.06605]])
@@ -18,7 +19,7 @@ def std_rotation_y(theta):
 def std_rotation_z(theta):
     return np.array([[np.cos(theta), -np.sin(theta), 0], [np.sin(theta), np.cos(theta), 0], [0, 0, 1]])
 
-def rot_base_to_tool(q0, q1, q2, q3, q4, _):
+def rot_base_to_tool(q0, q1, q2, q3, q4):
     rot_b1 = std_rotation_z(q0)
     rot_12 = std_rotation_y(np.pi/2) @ std_rotation_z(q1)
     rot_23 = std_rotation_z(q2)
@@ -27,8 +28,7 @@ def rot_base_to_tool(q0, q1, q2, q3, q4, _):
 
     return rot_b1 @ rot_12 @ rot_23 @ rot_34 @ rot_4tool
 
-
-def rot_base_to_cam(q0, q1, q2, q3, _):
+def rot_base_to_cam(q0, q1, q2, q3):
     # frame 4 and camera frame are fixed
     rot_b1 = std_rotation_z(q0)
     rot_12 = std_rotation_y(np.pi/2) @ std_rotation_z(q1)
@@ -38,7 +38,12 @@ def rot_base_to_cam(q0, q1, q2, q3, _):
 
     return rot_b1 @ rot_12 @ rot_23 @ rot_34 @ rot_4cam
 
-def tf_base_to_cam(q0, q1, q2, q3, _):
+def rotmatrix_to_quaternion(rot_matrix):
+    r = Rotation.from_matrix(rot_matrix)
+    return r.as_quat()
+
+
+def tf_base_to_cam(q0, q1, q2, q3):
     rot_b1 = std_rotation_z(q0)
     rot_12 = std_rotation_y(np.pi/2) @ std_rotation_z(q1)
     rot_23 = std_rotation_z(q2)
@@ -46,7 +51,7 @@ def tf_base_to_cam(q0, q1, q2, q3, _):
 
     return tf_base1 + rot_b1 @ (tf_12 + rot_12 @ (tf_23 + rot_23 @ (tf_34 + (rot_34 @ tf_4cam))))
 
-def tf_base_to_tool(q0, q1, q2, q3, q4, _):
+def tf_base_to_tool(q0, q1, q2, q3, q4):
     rot_b1 = std_rotation_z(q0)
     rot_12 = std_rotation_y(np.pi/2) @ std_rotation_z(q1)
     rot_23 = std_rotation_z(q2)
