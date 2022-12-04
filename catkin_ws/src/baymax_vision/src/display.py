@@ -10,6 +10,7 @@ import numpy as np
 import cvmanip as cvm
 from cv_bridge import CvBridge
 
+from scipy.spatial.transform import Rotation
 
 # node info
 NODE_NAME = "baymax_vision"
@@ -63,16 +64,33 @@ def image_handler( msg ):
 
     corners, ids, _ = cv.aruco.detectMarkers(grayscale_image, aruco_dict, parameters=aruco_params)
 
+    arucoid = targetid_to_arucoid.get(TARGET_ID)
+
+    # get current camera pose
+    pos_basetocam = np.array([[BASE_CAM_TF.position.x], [BASE_CAM_TF.position.y], [BASE_CAM_TF.position.z]])
+
+    quat_basetocam = np.array([BASE_CAM_TF.orientation.x, BASE_CAM_TF.orientation.y, BASE_CAM_TF.orientation.z, BASE_CAM_TF.orientation.w])
+
+    rot_basetocam = Rotation.from_quat(quat_basetocam).as_matrix()
+
     for i in range(len(corners)):
-        # estimate pose
-        rot_camtotarget, tf_camtotarget, _ = cv.aruco.estimatePoseSingleMarkers(corners[i], 0.02,
+        if not arucoid == ids[i][0]:
+            continue
+        # estimate pose for current target id
+        
+        rot_camtotarget, pos_camtotarget, _ = cv.aruco.estimatePoseSingleMarkers(corners[i], 0.045,
         calibration_matrix, distortion_coeffs)
 
         # calculate base to target tf
-        
+        pos_camtotarget = pos_camtotarget.reshape((3, 1))
+        pos_basetotarget = pos_basetocam + rot_basetocam @ pos_camtotarget
 
+        print("cam to target:", pos_camtotarget)
+        print("base to target:", pos_basetotarget)
+
+    
         cv.aruco.drawDetectedMarkers(frame, corners)
-        cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, tf_camtotarget, 0.01)
+        cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, pos_camtotarget, 0.01)
 
 
     cvm.quickshow(frame)

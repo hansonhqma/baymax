@@ -6,8 +6,10 @@ from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Int32
 import geometry_msgs.msg
 
+import numpy as np
 import tinyik
 import naive_fk
+import fk_ik_jq as kin
 
 from pathgen import squared_velocity_path
 
@@ -44,7 +46,7 @@ def handle_read_angles( angles ):
 
     # base to tool tf
     tf_basetotool = geometry_msgs.msg.Pose()
-    pos_tool = naive_fk.tf_base_to_tool(*angles).reshape((3))
+    pos_tool = naive_fk.tf_base_to_tool(*(angles[:5])).reshape((3))
     rot_tool = naive_fk.rotmatrix_to_quaternion(naive_fk.rot_base_to_tool(*(angles[:5])))
     tf_basetotool.position.x = pos_tool[0]
     tf_basetotool.position.y = pos_tool[1]
@@ -52,7 +54,7 @@ def handle_read_angles( angles ):
 
     # base to cam tf
     tf_basetocam = geometry_msgs.msg.Pose()
-    pos_cam = naive_fk.tf_base_to_cam(*angles).reshape((3))
+    pos_cam = naive_fk.tf_base_to_cam(*(angles[:4])).reshape((3))
     rot_cam = naive_fk.rotmatrix_to_quaternion(naive_fk.rot_base_to_cam(*(angles[:4])))
 
     tf_basetocam.orientation.x = rot_cam[0]
@@ -116,8 +118,7 @@ def handle_xyz( msg:Float32MultiArray ):
     global CURRENT_ANGLES
     lamda_max = 100
     # get current xyz
-    dofbot_base_to_tool.angles = [x for x in CURRENT_ANGLES]
-    initial_xyz = dofbot_base_to_tool.ee
+    initial_xyz = naive_fk.tf_base_to_tool(*(CURRENT_ANGLES[:5]))
     # calculate delta xyz
     delta_xyz = [msg.data[i] - initial_xyz[i] for i in range(3)]
 
@@ -131,9 +132,9 @@ def handle_xyz( msg:Float32MultiArray ):
 
     # ik on motion profiles to get joint motion profiles
     joint_paths = []
-    for i in range(lamda_max):
-        dofbot_base_to_tool.ee = [x for x in xyz_paths[i]]
-        joint_paths.append(dofbot_base_to_tool.angles)
+    joint_paths.append(list(kin.DOFBOT.ik(2.5, np.array(xyz_paths[0]), np.array(CURRENT_ANGLES[:5])))+[0])
+    for i in range(1, lamda_max):
+        joint_paths.append(list(kin.DOFBOT.ik(2.5, np.array(xyz_paths[i]), np.array(joint_paths[-1][:5])))+[0])
 
     # move
     for jpos in joint_paths:

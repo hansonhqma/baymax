@@ -5,7 +5,6 @@ import rospy
 from std_msgs.msg import Float32MultiArray
 import time
 import math
-from qpsolvers import solve_qp
 import random
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Pose
@@ -280,67 +279,6 @@ class robot:
         H += np.matmul( E_mat.T, E_mat )
         return H
     # 
-    def ik_qp( self,
-            _aTargetRot: Rotation,
-            _aTargetTrans: np.ndarray,
-            _aStartingAngles: np.ndarray,
-            _aIterations=DEFAULT.ITERATIONS,
-            _aAlpha=DEFAULT.ALPHA,
-            _aEpsilonRegularization=DEFAULT.EPSILON_REGULARIZATION,
-            _aEpsilonError=DEFAULT.EPSILON_ERROR,
-            _aBeta=DEFAULT.BETA ):
-        angles = _aStartingAngles
-        for i in range( 0, _aIterations ):
-            if rospy.is_shutdown():
-                break
-            # Perform forward kinematics and get the jacobian for
-            # this configuration
-            Jq, R_0i, P_0i = self.Jq( angles )
-            # Calculate the error in rotation matrices
-            vr = np.zeros( (3,) )#R_0i[-1] * _aTargetRot.inv()
-            # Calculate the error in translation
-            vp = ( _aTargetTrans - P_0i[-1] ) / 10
-            # Put both of these values into a single error vector
-
-            print(vp)
-
-            H = self.build_hessian( 
-                Jq,
-                vr,
-                vp,
-                1,
-                1
-            )
-
-            U = np.zeros( (self.__mNumJoints+2,) )
-            L = np.zeros( (self.__mNumJoints+2,) )
-            f = np.zeros( (self.__mNumJoints+2,) )
-
-            L[0:self.__mNumJoints] = np.full( (self.__mNumJoints,), -math.pi/10 )
-            U[0:self.__mNumJoints] = np.full( (self.__mNumJoints,), math.pi/10 )
-            U[self.__mNumJoints:] = np.full( (2,), 0.1 )
-            f[self.__mNumJoints] = -2 * 1
-            f[self.__mNumJoints+1] = -2 * 1
-            x = np.zeros( (self.__mNumJoints+2,) )
-            x[:self.__mNumJoints] = angles
-
-            res = solve_qp(
-                H,
-                f,
-                lb=L,
-                ub=U,
-                solver="quadprog",
-                initvals=x
-            )
-
-            print(res)
-            angles += res[:self.__mNumJoints]
-
-            msg = Float32MultiArray()
-            msg.data = tuple( angles ) + (0,)
-            #pub.publish( msg )
-
-        raise Exception( "Could not converge!" )
 
 DOFBOT = robot(
     np.array(
@@ -354,7 +292,7 @@ DOFBOT = robot(
       [ 0, 0, 0       ],
       [ 0, 0, 0.08285 ],
       [ 0, 0, 0.08285 ],
-      [ 0, 0, 0.12842 ] ] )
+      [ 0, 0, 0.20842 ], ] )
 )
 
 DOFBOT_test = robot(

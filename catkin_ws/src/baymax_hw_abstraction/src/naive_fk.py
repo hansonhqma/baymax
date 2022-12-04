@@ -34,7 +34,7 @@ def rot_base_to_cam(q0, q1, q2, q3):
     rot_12 = std_rotation_y(np.pi/2) @ std_rotation_z(q1)
     rot_23 = std_rotation_z(q2)
     rot_34 = std_rotation_z(q3)
-    rot_4cam = np.eye(3)
+    rot_4cam = std_rotation_y(-np.pi/2)
 
     return rot_b1 @ rot_12 @ rot_23 @ rot_34 @ rot_4cam
 
