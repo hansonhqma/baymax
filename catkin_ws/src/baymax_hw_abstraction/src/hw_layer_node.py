@@ -42,7 +42,7 @@ def handle_read_angles( angles ):
     CURRENT_ANGLES = angles
 
     dofbot_fk_only.angles = angles
-    tf_basetotool = geometry_msgs.msg.PoseStamped()
+    tf_basetotool = geometry_msgs.msg.Pose()
     # build pose, position only for now, also maybe add rostime later?
     tf_xyz = dofbot_fk_only.ee
     tf_basetotool.position.x = tf_xyz[0]
