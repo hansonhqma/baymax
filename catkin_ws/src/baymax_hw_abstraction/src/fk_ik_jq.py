@@ -126,12 +126,13 @@ class robot:
 
         # Create the rotation matrices between each joint from
         # the axis angle representation
-        R_ij = Rotation.from_rotvec(
-            np.multiply(
-                np.asarray( [ _aAngles ] * 3 ).T,
-                self.__mAxes
+        R_ij = []
+        for i in range(self.__mAxes.shape[0]):
+            R_ij.append(
+                Rotation.from_rotvec(
+                    _aAngles[i] * self.__mAxes[i]
+                )
             )
-        )
 
         # Multiply each rotation to find the rotation matrix from
         # the base frame to the end effector frame
@@ -259,26 +260,6 @@ class robot:
                     angles[i] = self.__mLowerLimit[i]
 
         raise Exception( "Could not converge!" )
-
-    def build_hessian( self, _aJq, _aVr, _aVp, _aEpsr, _aEpsp ):
-        Jq_ext = np.zeros( (6,self.__mNumJoints+2) )
-        Jq_ext[:,0:self.__mNumJoints] = _aJq
-        V_mat = np.zeros( (6,self.__mNumJoints+2) )
-        V_mat[0:3,self.__mNumJoints] = _aVr
-        V_mat[3:6,self.__mNumJoints+1] = _aVp
-        E_mat = np.zeros( (2,self.__mNumJoints+2) )
-        E_mat[0,self.__mNumJoints] = _aEpsr
-        E_mat[1,self.__mNumJoints+1] = _aEpsp
-        H_temp = -2 * np.matmul(
-            Jq_ext.T,
-            V_mat
-        )
-        H = ( H_temp + H_temp.T ) / 2
-        H += np.matmul( Jq_ext.T, Jq_ext )
-        H += np.matmul( V_mat.T, V_mat )
-        H += np.matmul( E_mat.T, E_mat )
-        return H
-    # 
 
 DOFBOT = robot(
     np.array(
