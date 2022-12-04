@@ -1,0 +1,3 @@
+<launch>
+  <node name="motion_controller" pkg="baymax_motion_controller" type="motioncontroller.py" output="screen"/>
+</launch>

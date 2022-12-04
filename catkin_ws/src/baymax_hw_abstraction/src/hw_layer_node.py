@@ -4,6 +4,7 @@ import math
 import rospy
 from std_msgs.msg import Bool
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Int32
 import geometry_msgs.msg
 
 import tinyik
@@ -28,6 +29,7 @@ SET_XYZ_MSG = "/base/set_xyz"
 MOVE_JOINT_MSG = "/base/move_joints"
 
 SET_TORQUE_MSG = "/base/set_torque"
+TASKID_TOPIC = "/base/taskid"
 
 CURRENT_ANGLES = None
 
@@ -41,12 +43,11 @@ def handle_read_angles( angles ):
 
     dofbot_fk_only.angles = angles
     tf_basetotool = geometry_msgs.msg.PoseStamped()
-    tf_basetotool.header.stamp = "base to tool transform"
     # build pose, position only for now, also maybe add rostime later?
     tf_xyz = dofbot_fk_only.ee
-    tf_basetotool.pose.position.x = tf_xyz[0]
-    tf_basetotool.pose.position.y = tf_xyz[1]
-    tf_basetotool.pose.position.z = tf_xyz[2]
+    tf_basetotool.position.x = tf_xyz[0]
+    tf_basetotool.position.y = tf_xyz[1]
+    tf_basetotool.position.z = tf_xyz[2]
 
     base_to_tool_tf_publisher.publish(tf_basetotool)
     
@@ -90,7 +91,7 @@ def handle_path( msg ):
         arm.set_joints(jpos)
         rate.sleep()
 
-def handle_xyz( msg ):
+def handle_xyz( msg:Float32MultiArray ):
     global CURRENT_ANGLES
     lamda_max = 100
     # get current xyz
@@ -117,6 +118,11 @@ def handle_xyz( msg ):
     for jpos in joint_paths:
         arm.set_joints(jpos)
         rate.sleep()
+    
+    # publish completed task id
+    completed_task_id_msg = Int32()
+    completed_task_id_msg.data = msg.layout.data_offset
+    taskid_publisher.publish(completed_task_id_msg)
         
 
 def handle_setting_torque( msg ):
@@ -125,7 +131,8 @@ def handle_setting_torque( msg ):
 rospy.init_node( NODE_NAME )
 rate = rospy.Rate(50)
 joint_angle_publisher = rospy.Publisher( READ_JOINT_MSG, Float32MultiArray, queue_size=10 )
-base_to_tool_tf_publisher = rospy.Publisher( BASE_TO_TOOL_TF_MSG, geometry_msgs.msg.PoseStamped, queue_size=10 )
+base_to_tool_tf_publisher = rospy.Publisher( BASE_TO_TOOL_TF_MSG, geometry_msgs.msg.Pose, queue_size=10 )
+taskid_publisher = rospy.Publisher( TASKID_TOPIC, Int32, queue_size=1)
 rospy.Subscriber( SET_JOINT_MSG, Float32MultiArray, handle_write_angles )
 rospy.Subscriber( SET_JOINT_PATH_MSG, Float32MultiArray, handle_path )
 rospy.Subscriber( MOVE_JOINT_MSG, Float32MultiArray, handle_move_angles )

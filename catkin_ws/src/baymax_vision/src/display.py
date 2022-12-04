@@ -55,9 +55,8 @@ def image_handler( msg ):
 
     if not CURRENT_TASK == 'identify_target' or TARGET_ID == None or BASE_TOOL_TF == None:
         # don't need to do anything
-        #cvm.quickshow(cv.cvtColor(frame, cv.COLOR_BGR2RGB))
-        #return
-        pass
+        cvm.quickshow(frame)
+        return
     
     grayscale_image = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
     #aruco_id = targetid_to_arucoid[TARGET_ID]
@@ -73,7 +72,6 @@ def image_handler( msg ):
         cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, tf_camtotarget, 0.01)
 
     cvm.quickshow(frame)
-
 
     # look for specific aruco marker
     # publish tf
@@ -93,12 +91,9 @@ def base_tool_tf_handler( msg ):
     global BASE_TOOL_TF
     BASE_TOOL_TF = msg
 
-
-
-
 rospy.Subscriber(IMAGE_TOPIC, sensor_msgs.msg.Image, image_handler)
 rospy.Subscriber(CURRENT_TASK_TOPIC, std_msgs.msg.String, current_task_handler)
 rospy.Subscriber(TARGET_ID_TOPIC, std_msgs.msg.String, target_id_handler)
-rospy.Subscriber(BASE_TOOL_TF_TOPIC, geometry_msgs.msg.PoseStamped, base_tool_tf_handler)
+rospy.Subscriber(BASE_TOOL_TF_TOPIC, geometry_msgs.msg.Pose, base_tool_tf_handler)
 rospy.spin()
 
