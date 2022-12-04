@@ -13,9 +13,9 @@ from pathgen import squared_velocity_path
 
 # naive ik approach
 
-chain = [[0, 0, 0.066], 'z', [0, 0, 0.0415], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0739]]
-dofbot = tinyik.Actuator(chain)
-dofbot_fk_only = tinyik.Actuator(chain)
+base_to_tool = [[0, 0, 0.066], 'z', [0, 0, 0.0415], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0739], 'z', [0, 0, 0.08]]
+dofbot_base_to_tool = tinyik.Actuator(base_to_tool)
+dofbot_base_to_tool_broadcaster = tinyik.Actuator(base_to_tool)
 
 # ROSpy node/msg names
 NODE_NAME = "hw_layer_node"
@@ -41,10 +41,10 @@ def handle_read_angles( angles ):
     joint_angle_publisher.publish( msg )
     CURRENT_ANGLES = angles
 
-    dofbot_fk_only.angles = angles
+    dofbot_base_to_tool_broadcaster.angles = angles
     tf_basetotool = geometry_msgs.msg.Pose()
     # build pose, position only for now, also maybe add rostime later?
-    tf_xyz = dofbot_fk_only.ee
+    tf_xyz = dofbot_base_to_tool_broadcaster.ee
     tf_basetotool.position.x = tf_xyz[0]
     tf_basetotool.position.y = tf_xyz[1]
     tf_basetotool.position.z = tf_xyz[2]
@@ -83,7 +83,7 @@ def handle_path( msg ):
     paths = [[squared_velocity_path(0, lamda_max, joint_deltas[i]) for i in range(6)]]
     for i in range(1, lamda_max):
         paths.append([paths[-1][j]+squared_velocity_path(i, lamda_max, joint_deltas[j]) for j in range(6)])
-    for i in range(lamda_max):
+    for i in range(len(paths)):
         for j in range(6):
             paths[i][j] += CURRENT_ANGLES[j]
     
@@ -91,12 +91,17 @@ def handle_path( msg ):
         arm.set_joints(jpos)
         rate.sleep()
 
+    # publish completed task id
+    completed_task_id_msg = Int32()
+    completed_task_id_msg.data = msg.layout.data_offset
+    taskid_publisher.publish(completed_task_id_msg)
+
 def handle_xyz( msg:Float32MultiArray ):
     global CURRENT_ANGLES
     lamda_max = 100
     # get current xyz
-    dofbot.angles = [x for x in CURRENT_ANGLES]
-    initial_xyz = dofbot.ee
+    dofbot_base_to_frame5.angles = [x for x in CURRENT_ANGLES]
+    initial_xyz = dofbot_base_to_frame5.ee
     # calculate delta xyz
     delta_xyz = [msg.data[i] - initial_xyz[i] for i in range(3)]
 
@@ -111,8 +116,8 @@ def handle_xyz( msg:Float32MultiArray ):
     # ik on motion profiles to get joint motion profiles
     joint_paths = []
     for i in range(lamda_max):
-        dofbot.ee = [x for x in xyz_paths[i]]
-        joint_paths.append(dofbot.angles)
+        dofbot_base_to_frame5.ee = [x for x in xyz_paths[i]]
+        joint_paths.append(dofbot_base_to_frame5.angles)
 
     # move
     for jpos in joint_paths:

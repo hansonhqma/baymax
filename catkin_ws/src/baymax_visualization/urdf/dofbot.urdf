@@ -35,7 +35,7 @@
         </collision>
     </link>
     <joint name="joint1" type="revolute">
-        <origin xyz="0 0 0.06605" rpy="-0.010805 0 0" />
+        <origin xyz="0 0 0.06605" rpy="0 0 0" />
         <parent link="base_link" />
         <child link="link1" />
         <axis xyz="0 0 1" />
@@ -59,7 +59,7 @@
         </collision>
     </link>
     <joint name="joint2" type="revolute">
-        <origin xyz="0 -0.00031873 0.04145" rpy="0 1.5708 0" />
+        <origin xyz="0 0 0.04145" rpy="0 1.5708 0" />
         <parent link="link1" />
         <child link="link2" />
         <axis xyz="0 0 1" />
@@ -107,12 +107,25 @@
         </collision>
     </link>
     <joint name="joint4" type="revolute">
-        <origin xyz="-0.08285 0 0" rpy="0 0 0.0083081" />
+        <origin xyz="-0.08285 0 0" rpy="0 0 0" />
         <parent link="link3" />
         <child link="link4" />
         <axis xyz="0 0 1" />
         <limit effort="30" velocity="1.0" lower="-1.5708" upper="1.5708"/>
     </joint>
+    <joint name="cam" type="fixed">
+        <origin xyz="-0.072 -0.049 0" rpy="0 -1.5708 0" />
+        <parent link="link4" />
+        <child link="link_cam" />
+    </joint>
+    <link name="link_cam">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <material name="">
+                <color rgba="0.592156862745098 0.666666666666667 0.682352941176471 1" />
+            </material>
+        </visual>
+    </link>
     <!-- link5 -->
     <link name="link5">
         <visual>
@@ -133,7 +146,7 @@
     </link>
     <!-- joint5 -->
     <joint name="joint5" type="revolute">
-        <origin xyz="-0.07385 -0.001 0" rpy="0 -1.57 0"/>
+        <origin xyz="-0.07385 0 0" rpy="0 -1.5708 0"/>
         <axis xyz="0 0 1"/>
         <parent link="link4"/>
         <child link="link5"/>

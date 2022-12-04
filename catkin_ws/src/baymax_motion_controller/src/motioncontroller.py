@@ -20,13 +20,14 @@ TASKID_TOPIC = "/base/taskid"
 BASE_SET_JOINTS_RAW_TOPIC = "/base/set_joints"
 BASE_SET_JOINTS_TOPIC = "/base/set_joints_path"
 BASE_SET_XYZ_TOPIC = "/base/set_xyz"
+BASE_ENABLE_TORQUE = "/base/set_torque"
 
 # preset positions
 STANDBY_JOINT_CONFIG = [0, 0.8, -0.8, -2.3, 0, 0]
 ZERO_CONFIG = [0] * 6
 
-STANDBY_LEFT_CONFIG = [2, 0.8, -0.8, -2.3, 0, 0]
-STANDBY_RIGHT_CONFIG = [-2, 0.8, -0.8, -2.3, 0, 0]
+STANDBY_LEFT_CONFIG = [1, 0.8, -0.8, -2.3, 0, 0]
+STANDBY_RIGHT_CONFIG = [-1, 0.8, -0.8, -2.3, 0, 0]
 
 # node state info
 CURRENT_TASK = None
@@ -50,9 +51,9 @@ def current_task_handler ( msg ):
         state_msg.data = ZERO_CONFIG
         print("Zero")
     
-    elif CURRENT_TASK == 'identify_target':
+    elif CURRENT_TASK == 'sweep':
         print("i was here identifying")
-        while CURRENT_TASK == 'identify_target':
+        while CURRENT_TASK == 'sweep':
             print("identifying...")
             current_task_id = get_new_taskid()
             OPEN_TASKS_IDS.add(current_task_id)
@@ -61,14 +62,14 @@ def current_task_handler ( msg ):
             # add taskid to msg and publish
             state_msg.layout.data_offset = current_task_id
             print("running taskid {}".format(current_task_id))
-            set_joints_publisher.publish(state_msg.data)
+            set_joints_publisher.publish(state_msg)
             # while task is still open, sleep
             while current_task_id in OPEN_TASKS_IDS:
                 rate.sleep()
             print("finished taskid {}".format(current_task_id))
             
             # done, do an intermediate check
-            if not CURRENT_TASK == 'identify_target':
+            if not CURRENT_TASK == 'sweep':
                 break
 
             current_task_id = get_new_taskid()
@@ -78,7 +79,7 @@ def current_task_handler ( msg ):
             # add taskid to msg and publish
             state_msg.layout.data_offset = current_task_id
             print("running taskid {}".format(current_task_id))
-            set_joints_publisher.publish(state_msg.data)
+            set_joints_publisher.publish(state_msg)
             # while task is still open, sleep
             while current_task_id in OPEN_TASKS_IDS:
                 rate.sleep()
@@ -91,13 +92,14 @@ def current_task_handler ( msg ):
 def complete_task_id_handler( msg ):
     # removes completed task id from open tasks
     global OPEN_TASKS_IDS
-    OPEN_TASKS_IDS.remove(msg.data)
+    if msg.data in OPEN_TASKS_IDS:
+        OPEN_TASKS_IDS.remove(msg.data)
 
 def get_new_taskid():
-    global OPEN_TASKS
+    global OPEN_TASKS_IDS
     for i in range(1000):
         gen = random.randint(0, 255)
-        if gen not in OPEN_TASKS: # valid task id
+        if gen not in OPEN_TASKS_IDS: # valid task id
             return gen
 
     return None
@@ -107,5 +109,10 @@ def get_new_taskid():
 rospy.Subscriber(CURRENT_TASK_TOPIC, std_msgs.msg.String, current_task_handler)
 rospy.Subscriber(TASKID_TOPIC, std_msgs.msg.Int32, complete_task_id_handler)
 set_joints_publisher = rospy.Publisher(BASE_SET_JOINTS_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
+enable_torque_publisher = rospy.Publisher(BASE_ENABLE_TORQUE, std_msgs.msg.Bool, queue_size=1)
+
+torque_on = std_msgs.msg.Bool()
+torque_on.data = "true"
+enable_torque_publisher.publish(torque_on)
 
 rospy.spin()
