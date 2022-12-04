@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import driver
-import math
 import rospy
 from std_msgs.msg import Bool
 from std_msgs.msg import Float32MultiArray
@@ -8,6 +7,7 @@ from std_msgs.msg import Int32
 import geometry_msgs.msg
 
 import tinyik
+import naive_fk
 
 from pathgen import squared_velocity_path
 
@@ -22,6 +22,7 @@ NODE_NAME = "hw_layer_node"
 
 READ_JOINT_MSG = "/base/read_joints"
 BASE_TO_TOOL_TF_MSG = "/tf/base_to_tool"
+BASE_TO_CAM_TF_MSG = "/tf/base_to_cam"
 
 SET_JOINT_MSG = "/base/set_joints"
 SET_JOINT_PATH_MSG = "/base/set_joints_path"
@@ -41,15 +42,22 @@ def handle_read_angles( angles ):
     joint_angle_publisher.publish( msg )
     CURRENT_ANGLES = angles
 
-    dofbot_base_to_tool_broadcaster.angles = angles
     tf_basetotool = geometry_msgs.msg.Pose()
     # build pose, position only for now, also maybe add rostime later?
-    tf_xyz = dofbot_base_to_tool_broadcaster.ee
-    tf_basetotool.position.x = tf_xyz[0]
-    tf_basetotool.position.y = tf_xyz[1]
-    tf_basetotool.position.z = tf_xyz[2]
+    tf_xyz_tool = naive_fk.tf_base_to_tool(*angles).reshape((3,))
+    tf_basetotool.position.x = tf_xyz_tool[0]
+    tf_basetotool.position.y = tf_xyz_tool[1]
+    tf_basetotool.position.z = tf_xyz_tool[2]
+
+    tf_basetocam = geometry_msgs.msg.Pose()
+    # build pose, position only for now, also maybe add rostime later?
+    tf_xyz_cam = naive_fk.tf_base_to_cam(*angles).reshape((3,))
+    tf_basetotool.position.x = tf_xyz_cam[0]
+    tf_basetotool.position.y = tf_xyz_cam[1]
+    tf_basetotool.position.z = tf_xyz_cam[2]
 
     base_to_tool_tf_publisher.publish(tf_basetotool)
+    base_to_cam_tf_publisher.publish(tf_basetocam)
     
 def handle_write_angles( msg ):
     if( len( msg.data ) == 6 ):
@@ -100,8 +108,8 @@ def handle_xyz( msg:Float32MultiArray ):
     global CURRENT_ANGLES
     lamda_max = 100
     # get current xyz
-    dofbot_base_to_frame5.angles = [x for x in CURRENT_ANGLES]
-    initial_xyz = dofbot_base_to_frame5.ee
+    dofbot_base_to_tool.angles = [x for x in CURRENT_ANGLES]
+    initial_xyz = dofbot_base_to_tool.ee
     # calculate delta xyz
     delta_xyz = [msg.data[i] - initial_xyz[i] for i in range(3)]
 
@@ -116,8 +124,8 @@ def handle_xyz( msg:Float32MultiArray ):
     # ik on motion profiles to get joint motion profiles
     joint_paths = []
     for i in range(lamda_max):
-        dofbot_base_to_frame5.ee = [x for x in xyz_paths[i]]
-        joint_paths.append(dofbot_base_to_frame5.angles)
+        dofbot_base_to_tool.ee = [x for x in xyz_paths[i]]
+        joint_paths.append(dofbot_base_to_tool.angles)
 
     # move
     for jpos in joint_paths:
@@ -137,6 +145,7 @@ rospy.init_node( NODE_NAME )
 rate = rospy.Rate(50)
 joint_angle_publisher = rospy.Publisher( READ_JOINT_MSG, Float32MultiArray, queue_size=10 )
 base_to_tool_tf_publisher = rospy.Publisher( BASE_TO_TOOL_TF_MSG, geometry_msgs.msg.Pose, queue_size=10 )
+base_to_cam_tf_publisher = rospy.Publisher( BASE_TO_CAM_TF_MSG, geometry_msgs.msg.Pose, queue_size=10 )
 taskid_publisher = rospy.Publisher( TASKID_TOPIC, Int32, queue_size=1)
 rospy.Subscriber( SET_JOINT_MSG, Float32MultiArray, handle_write_angles )
 rospy.Subscriber( SET_JOINT_PATH_MSG, Float32MultiArray, handle_path )
