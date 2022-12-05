@@ -51,13 +51,13 @@ targetid_to_arucoid = {
 
 rospy.init_node(NODE_NAME)
 
-CAPTURE = cv.VideoCapture(4)
+CAPTURE = cv.VideoCapture(0)
 
 w, h = 640, 480
 
 newcameramtx, roi = cv.getOptimalNewCameraMatrix(calibration_matrix, distortion_coeffs, (w,h), 1, (w,h))
 
-def start_vision( msg ):
+def start_vision( _ ):
     while True:
         ret, frame = CAPTURE.read()
 
@@ -101,7 +101,13 @@ def start_vision( msg ):
             print("cam to target:", pos_camtotarget)
             print("base to target:", pos_basetotarget)
 
-        
+            tf_msg = geometry_msgs.msg.Pose()
+            tf_msg.position.x = pos_basetotarget[0][0]
+            tf_msg.position.y = pos_basetotarget[1][0]
+            tf_msg.position.z = pos_basetotarget[2][0]
+
+            target_tf_publisher.publish(tf_msg)
+            
             cv.aruco.drawDetectedMarkers(frame, corners)
             cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, pos_camtotarget, 0.01)
 
@@ -133,5 +139,6 @@ rospy.Subscriber(CURRENT_TASK_TOPIC, std_msgs.msg.String, current_task_handler)
 rospy.Subscriber(TARGET_ID_TOPIC, std_msgs.msg.String, target_id_handler)
 rospy.Subscriber(BASE_CAM_TF_TOPIC, geometry_msgs.msg.Pose, base_cam_tf_handler)
 rospy.Subscriber(VISION_START_TOPIC, std_msgs.msg.String, start_vision)
+target_tf_publisher = rospy.Publisher(TARGET_POS_TF, geometry_msgs.msg.Pose, queue_size=1)
 rospy.spin()
 

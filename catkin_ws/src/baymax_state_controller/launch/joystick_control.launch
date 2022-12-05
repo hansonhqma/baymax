@@ -1,0 +1,3 @@
+<launch>
+  <node name="joystick_controller" pkg="baymax_state_controller" type="joystick.py" output="screen"/>
+</launch>

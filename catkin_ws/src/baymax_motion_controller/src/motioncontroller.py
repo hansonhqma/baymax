@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import rospy
 import std_msgs.msg
+import geometry_msgs.msg
 
 import random
 
@@ -32,6 +33,7 @@ STANDBY_RIGHT_CONFIG = [-1, 0.8, -0.8, -2.3, 0, 0]
 # node state info
 CURRENT_TASK = None
 OPEN_TASKS_IDS = set()
+TF_BASE_TO_TARGET = None
 
 def current_task_handler ( msg ):
     global CURRENT_TASK
@@ -50,6 +52,21 @@ def current_task_handler ( msg ):
     elif CURRENT_TASK == "zero":
         state_msg.data = ZERO_CONFIG
         print("Zero")
+
+    elif CURRENT_TASK == "reach":
+        # needs target pos msg
+        if TF_BASE_TO_TARGET == None:
+            print("motion controller not yet received target pose")
+            return
+        
+        state_msg.data = [
+            TF_BASE_TO_TARGET.position.x,
+            TF_BASE_TO_TARGET.position.y,
+            TF_BASE_TO_TARGET.position.z
+        ]
+
+        set_xyz_publisher.publish(state_msg)
+        return
     
     elif CURRENT_TASK == 'sweep':
         print("i was here identifying")
@@ -95,6 +112,10 @@ def complete_task_id_handler( msg ):
     if msg.data in OPEN_TASKS_IDS:
         OPEN_TASKS_IDS.remove(msg.data)
 
+def tf_base_to_target_handler( msg ):
+    global TF_BASE_TO_TARGET
+    TF_BASE_TO_TARGET = msg
+
 def get_new_taskid():
     global OPEN_TASKS_IDS
     for i in range(1000):
@@ -108,8 +129,10 @@ def get_new_taskid():
 
 rospy.Subscriber(CURRENT_TASK_TOPIC, std_msgs.msg.String, current_task_handler)
 rospy.Subscriber(TASKID_TOPIC, std_msgs.msg.Int32, complete_task_id_handler)
+rospy.Subscriber(TARGET_POS_TF, geometry_msgs.msg.Pose, tf_base_to_target_handler)
 set_joints_publisher = rospy.Publisher(BASE_SET_JOINTS_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
 enable_torque_publisher = rospy.Publisher(BASE_ENABLE_TORQUE, std_msgs.msg.Bool, queue_size=1)
+set_xyz_publisher = rospy.Publisher(BASE_SET_XYZ_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
 
 torque_on = std_msgs.msg.Bool()
 torque_on.data = "true"

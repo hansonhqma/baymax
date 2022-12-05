@@ -11,7 +11,6 @@ from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Vector3
-import matplotlib.pyplot as plt
 
 class DEFAULT:
     ITERATIONS = 2000000
@@ -22,7 +21,7 @@ class DEFAULT:
     # When the norm of the error matrix is less
     # than this scalar value, inverse kinematics
     # are said to have converged
-    EPSILON_ERROR = 5e-4
+    EPSILON_ERROR = 1e-3
     # Beta is a elementwise scaling vector of the
     # error term. Recall the first three terms are
     # the 3d translational error, which is chosen
@@ -53,7 +52,7 @@ class DEFAULT:
         1,
         1]
     )
-    JOINT_LIMIT = math.pi / 2
+    JOINT_LIMIT = math.pi * 0.75
 
 def print_pose( _aRot, _aTrans, _aID ):
     m = Marker()
@@ -307,8 +306,3 @@ if __name__ == "__main__":
 
         _lambda += _incr
 
-jp = np.array( jp )
-
-for i in range( 5 ):
-    plt.plot(jp[:,i])
-plt.show()

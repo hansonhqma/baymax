@@ -124,6 +124,7 @@ def handle_xyz( msg:Float32MultiArray ):
             xyz_paths[i][dim] += initial_xyz[dim]
 
     # ik on motion profiles to get joint motion profiles
+    xyz_paths = np.array(xyz_paths).reshape((lamda_max, 3))
     joint_paths = []
     recent_config = [x for x in CURRENT_ANGLES[:5]]
     for i in range(len(xyz_paths)):
