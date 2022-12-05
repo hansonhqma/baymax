@@ -48,10 +48,19 @@ def handle_input( msg:sensor_msgs.msg.Joy ):
     elif msg.axes[1] == -1: # zero
         task_msg.data = "zero"
         valid = True
+
+    elif msg.axes[1] == 1: # reach
+        task_msg.data = "reach"
+        valid = True
     
+    elif msg.buttons[7] == 1: # grasp
+        task_msg.data = "grasp"
+        valid = True
+
     if valid:
         print("new state: {}".format(task_msg.data))
         task_pub.publish(task_msg)
+    
 
 rospy.Subscriber(CONTROLLER_TOPIC, sensor_msgs.msg.Joy, handle_input)
 target_id_pub = rospy.Publisher(TARGET_ID_TOPIC, std_msgs.msg.String, queue_size=1)

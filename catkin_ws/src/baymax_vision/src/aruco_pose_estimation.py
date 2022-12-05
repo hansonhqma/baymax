@@ -65,17 +65,17 @@ def start_vision( _ ):
             continue
 
         frame = cv.undistort(frame, calibration_matrix, distortion_coeffs, None, newcameramtx)
+
+        cleaned_frame = cv.bitwise_not(cv.inRange(frame, (0, 0, 0), (180, 255, 190)))
             
         if not CURRENT_TASK == 'identify_target' or TARGET_ID == None or BASE_CAM_TF == None:
             # don't need to do anything
             cvm.quickshow(frame)
+            cvm.quickshow(cleaned_frame, "cleaned_frame")
             continue
 
         print("looking for {} marker".format(TARGET_ID))
-        grayscale_image = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
-        #aruco_id = targetid_to_arucoid[TARGET_ID]
-
-        corners, ids, _ = cv.aruco.detectMarkers(grayscale_image, aruco_dict, parameters=aruco_params)
+        corners, ids, _ = cv.aruco.detectMarkers(cleaned_frame, aruco_dict, parameters=aruco_params)
 
         arucoid = targetid_to_arucoid.get(TARGET_ID)
 
@@ -87,6 +87,7 @@ def start_vision( _ ):
         rot_basetocam = Rotation.from_quat(quat_basetocam).as_matrix()
 
         for i in range(len(corners)):
+            frame = cv.aruco.drawDetectedMarkers(frame, corners)
             if not arucoid == ids[i][0]:
                 continue
             # estimate pose for current target id
@@ -108,8 +109,7 @@ def start_vision( _ ):
 
             target_tf_publisher.publish(tf_msg)
             
-            cv.aruco.drawDetectedMarkers(frame, corners)
-            cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, pos_camtotarget, 0.01)
+            frame = cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, pos_camtotarget, 0.01)
 
 
         cvm.quickshow(frame)

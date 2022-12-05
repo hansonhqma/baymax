@@ -152,4 +152,17 @@
         <child link="link5"/>
         <limit effort="30" velocity="1.0" lower="-1.5708" upper="3.1416"/>
     </joint>
+    <joint name="tool" type="fixed">
+        <origin xyz="0 0 0.09" rpy="0 0 0" />
+        <parent link="link5" />
+        <child link="link_tool" />
+    </joint>
+    <link name="link_tool">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <material name="">
+                <color rgba="0.592156862745098 0.666666666666667 0.682352941176471 1" />
+            </material>
+        </visual>
+    </link>
 </robot>

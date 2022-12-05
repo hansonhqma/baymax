@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import math
+import numpy as np
 import time
 import rospy
 from std_msgs.msg import Float32MultiArray
@@ -7,12 +8,9 @@ from std_msgs.msg import Header
 import threading
 
 from pathgen import squared_velocity_path
-import tinyik
 
-# naive ik approach
-
-chain = [[0, 0, 0.066], 'z', [0, 0, 0.0415], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0739]]
-dofbot = tinyik.Actuator(chain)
+import naive_fk
+import fk_ik_jq as kin
 
 # ROSpy node/msg names
 NODE_NAME = "smbus_sim_node"
@@ -52,6 +50,8 @@ def handle_path( msg ):
         for j in range(6):
             paths[i][j] += joints[j]
     
+    print("writing paths")
+    np.save("/home/hanson/baymax/paths.npy", np.array(paths))
     for jpos in paths:
         joints = [x for x in jpos]
         rate.sleep()
@@ -60,26 +60,32 @@ def handle_xyz( msg ):
     global joints
     lamda_max = 100
     # get current xyz
-    dofbot.angles = [x for x in joints]
-    initial_xyz = dofbot.ee
+    initial_xyz = naive_fk.tf_base_to_tool(*(joints[:5]))
     # calculate delta xyz
     delta_xyz = [msg.data[i] - initial_xyz[i] for i in range(3)]
+
     # generate xyz motion profiles
-    print("generating xyz profiles")
     xyz_paths = [[squared_velocity_path(0, lamda_max, delta_xyz[i]) for i in range(3)]]
     for i in range(1, lamda_max):
         xyz_paths.append([xyz_paths[-1][dim]+squared_velocity_path(i, lamda_max, delta_xyz[dim]) for dim in range(3)])
     for i in range(lamda_max):
         for dim in range(3):
             xyz_paths[i][dim] += initial_xyz[dim]
+
     # ik on motion profiles to get joint motion profiles
-    print("converting to joint profiles")
+    xyz_paths = np.array(xyz_paths).reshape((lamda_max, 3))
+    np.save("/home/hanson/baymax/xyz_paths.npy", xyz_paths)
+
     joint_paths = []
-    for i in range(lamda_max):
-        dofbot.ee = [x for x in xyz_paths[i]]
-        joint_paths.append(dofbot.angles)
+    recent_config = [x for x in joints[:5]]
+    for i in range(len(xyz_paths)):
+        angles = kin.DOFBOT.ik(xyz_paths[i], np.array(recent_config))
+        recent_config = [x for x in angles]
+        joint_paths.append(list(angles)+[joints[5]])
+
     # move
-    print("writing joint positions")
+    print("writing paths")
+    np.save("/home/hanson/baymax/joint_paths.npy", np.array(joint_paths))
     for jpos in joint_paths:
         joints = [x for x in jpos]
         rate.sleep()

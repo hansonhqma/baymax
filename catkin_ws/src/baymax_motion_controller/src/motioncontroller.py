@@ -24,7 +24,7 @@ BASE_SET_XYZ_TOPIC = "/base/set_xyz"
 BASE_ENABLE_TORQUE = "/base/set_torque"
 
 # preset positions
-STANDBY_JOINT_CONFIG = [0, 0.8, -0.8, -2.3, 0, 0]
+STANDBY_JOINT_CONFIG = [0, 0.5, -0.8, -2.3, 0, 0]
 ZERO_CONFIG = [0] * 6
 
 STANDBY_LEFT_CONFIG = [1, 0.8, -0.8, -2.3, 0, 0]
@@ -35,11 +35,13 @@ CURRENT_TASK = None
 OPEN_TASKS_IDS = set()
 TF_BASE_TO_TARGET = None
 
+CURRENT_JOINTS = None
+
 def current_task_handler ( msg ):
     global CURRENT_TASK
     # update current task
-    if msg.data == CURRENT_TASK:
-        # redundant
+    if msg.data == CURRENT_TASK and not msg.data == "grasp":
+        # redundant except for grasp
         return
 
     CURRENT_TASK = msg.data
@@ -47,10 +49,12 @@ def current_task_handler ( msg ):
     state_msg = std_msgs.msg.Float32MultiArray()
     if CURRENT_TASK == "standby":
         state_msg.data = STANDBY_JOINT_CONFIG
+        state_msg.data[5] = CURRENT_JOINTS[5]
         print("Standby")
 
     elif CURRENT_TASK == "zero":
         state_msg.data = ZERO_CONFIG
+        state_msg.data[5] = CURRENT_JOINTS[5]
         print("Zero")
 
     elif CURRENT_TASK == "reach":
@@ -67,6 +71,17 @@ def current_task_handler ( msg ):
 
         set_xyz_publisher.publish(state_msg)
         return
+    
+    elif CURRENT_TASK == "grasp":
+        state_msg.data = [x for x in CURRENT_JOINTS]
+        if state_msg.data[5] <= 0:
+            state_msg.data[5] = 1
+        else:
+            state_msg.data[5] = -1
+
+        set_joints_raw_publisher.publish(state_msg)
+        return
+        
     
     elif CURRENT_TASK == 'sweep':
         print("i was here identifying")
@@ -116,6 +131,10 @@ def tf_base_to_target_handler( msg ):
     global TF_BASE_TO_TARGET
     TF_BASE_TO_TARGET = msg
 
+def read_joints_handler( msg ):
+    global CURRENT_JOINTS
+    CURRENT_JOINTS = msg.data
+
 def get_new_taskid():
     global OPEN_TASKS_IDS
     for i in range(1000):
@@ -130,7 +149,9 @@ def get_new_taskid():
 rospy.Subscriber(CURRENT_TASK_TOPIC, std_msgs.msg.String, current_task_handler)
 rospy.Subscriber(TASKID_TOPIC, std_msgs.msg.Int32, complete_task_id_handler)
 rospy.Subscriber(TARGET_POS_TF, geometry_msgs.msg.Pose, tf_base_to_target_handler)
+rospy.Subscriber(BASE_READ_JOINTS_TOPICS, std_msgs.msg.Float32MultiArray, read_joints_handler)
 set_joints_publisher = rospy.Publisher(BASE_SET_JOINTS_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
+set_joints_raw_publisher = rospy.Publisher(BASE_SET_JOINTS_RAW_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
 enable_torque_publisher = rospy.Publisher(BASE_ENABLE_TORQUE, std_msgs.msg.Bool, queue_size=1)
 set_xyz_publisher = rospy.Publisher(BASE_SET_XYZ_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
 

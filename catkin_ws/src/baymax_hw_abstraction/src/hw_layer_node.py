@@ -130,7 +130,7 @@ def handle_xyz( msg:Float32MultiArray ):
     for i in range(len(xyz_paths)):
         angles = kin.DOFBOT.ik(xyz_paths[i], np.array(recent_config))
         recent_config = [x for x in angles]
-        joint_paths.append(list(angles)+[0])
+        joint_paths.append(list(angles)+[CURRENT_ANGLES[5]])
 
     # move
     for jpos in joint_paths:
