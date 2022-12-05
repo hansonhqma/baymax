@@ -7,17 +7,10 @@ from std_msgs.msg import Int32
 import geometry_msgs.msg
 
 import numpy as np
-import tinyik
 import naive_fk
 import fk_ik_jq as kin
 
 from pathgen import squared_velocity_path
-
-# naive ik approach
-
-base_to_tool = [[0, 0, 0.06605], 'z', [0, 0, 0.0415], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0739], 'z', [0, 0, 0.08]]
-dofbot_base_to_tool = tinyik.Actuator(base_to_tool)
-dofbot_base_to_tool_broadcaster = tinyik.Actuator(base_to_tool)
 
 # ROSpy node/msg names
 NODE_NAME = "hw_layer_node"
@@ -132,9 +125,11 @@ def handle_xyz( msg:Float32MultiArray ):
 
     # ik on motion profiles to get joint motion profiles
     joint_paths = []
-    joint_paths.append(list(kin.DOFBOT.ik(2.5, np.array(xyz_paths[0]), np.array(CURRENT_ANGLES[:5])))+[0])
-    for i in range(1, lamda_max):
-        joint_paths.append(list(kin.DOFBOT.ik(2.5, np.array(xyz_paths[i]), np.array(joint_paths[-1][:5])))+[0])
+    recent_config = [x for x in CURRENT_ANGLES[:5]]
+    for i in range(len(xyz_paths)):
+        angles = kin.DOFBOT.ik(xyz_paths[i], np.array(recent_config))
+        recent_config = [x for x in angles]
+        joint_paths.append(list(angles)+[0])
 
     # move
     for jpos in joint_paths:
