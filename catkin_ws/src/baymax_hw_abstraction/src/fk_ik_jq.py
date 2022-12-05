@@ -11,6 +11,7 @@ from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Vector3
+import matplotlib.pyplot as plt
 
 class DEFAULT:
     ITERATIONS = 2000000
@@ -21,7 +22,7 @@ class DEFAULT:
     # When the norm of the error matrix is less
     # than this scalar value, inverse kinematics
     # are said to have converged
-    EPSILON_ERROR = 5e-3
+    EPSILON_ERROR = 5e-4
     # Beta is a elementwise scaling vector of the
     # error term. Recall the first three terms are
     # the 3d translational error, which is chosen
@@ -126,12 +127,13 @@ class robot:
 
         # Create the rotation matrices between each joint from
         # the axis angle representation
-        R_ij = Rotation.from_rotvec(
-            np.multiply(
-                np.asarray( [ _aAngles ] * 3 ).T,
-                self.__mAxes
+        R_ij = []
+        for i in range(self.__mAxes.shape[0]):
+            R_ij.append(
+                Rotation.from_rotvec(
+                    _aAngles[i] * self.__mAxes[i]
+                )
             )
-        )
 
         # Multiply each rotation to find the rotation matrix from
         # the base frame to the end effector frame
@@ -176,7 +178,6 @@ class robot:
 
     # 
     def ik( self,
-            _aTargetRot: float,
             _aTargetTrans: np.ndarray,
             _aStartingAngles: np.ndarray,
             _aIterations=DEFAULT.ITERATIONS,
@@ -193,25 +194,11 @@ class robot:
             # Perform forward kinematics and get the jacobian for
             # this configuration
             Jq, R_0i, P_0i = self.Jq( angles )
-            #print_pose( Rotation.from_rotvec( [ 0, _aTargetRot, 0 ] ) * Rotation.from_rotvec( [ 0, 0, angles[0] ] ), _aTargetTrans, 0 )
-            #print_pose( R_0i[-1], P_0i[-1], 0 )
 
-            angle = np.arccos( np.dot( [0, 0, 1], R_0i[-1].apply( [0, 0, 1] ) ) )
             # Calculate the error in translation
             P_err = P_0i[-1] - _aTargetTrans
-            # Put both of these values into a single error vector
-            err = np.ndarray( (4,) )
-            err[0:1] = 0 #( angle - _aTargetRot ) /50
-            err[1:4] = P_err
-            #err = np.multiply( err, _aBeta )
 
-            Jq_test = np.zeros( (4,self.__mNumJoints) )
-            Jq_test[1:4,:] = Jq[3:6,:]
-            Jq_test[0,1] = 1
-            Jq_test[0,2] = 1
-            Jq_test[0,3] = 1
-
-            curr_err = np.linalg.norm( err )
+            curr_err = np.linalg.norm( P_err )
 
             if last_error is not None:
                 if last_error - curr_err < _aEpsilonError / 10000:
@@ -221,25 +208,22 @@ class robot:
                         continue
             last_error = curr_err
 
-            if( np.linalg.norm( err ) < _aEpsilonError ):
-                print(np.linalg.norm( err ))
-                print(_aEpsilonError)
-                print("Returning...")
+            if( np.linalg.norm( P_err ) < _aEpsilonError ):
                 return angles
 
             # Perform the "pseudo inverse" of the jacobian with the
             # damped least squares method
             inv = np.matmul(
-                Jq_test.T,
+                Jq[3:6,:].T,
                 np.linalg.inv(
                     np.add(
-                        np.matmul( Jq_test, Jq_test.T ),
-                        _aEpsilonRegularization * np.identity( Jq_test.shape[0] )
+                        np.matmul( Jq[3:6,:], Jq[3:6,:].T ),
+                        _aEpsilonRegularization * np.identity( Jq[3:6,:].shape[0] )
                     )
                 )
             )
 
-            incr = np.matmul( inv, err )
+            incr = np.matmul( inv, P_err )
             if np.linalg.norm( incr ) > 0.1:
                 incr = 0.1 * incr / np.linalg.norm( incr )
 
@@ -260,52 +244,19 @@ class robot:
 
         raise Exception( "Could not converge!" )
 
-    def build_hessian( self, _aJq, _aVr, _aVp, _aEpsr, _aEpsp ):
-        Jq_ext = np.zeros( (6,self.__mNumJoints+2) )
-        Jq_ext[:,0:self.__mNumJoints] = _aJq
-        V_mat = np.zeros( (6,self.__mNumJoints+2) )
-        V_mat[0:3,self.__mNumJoints] = _aVr
-        V_mat[3:6,self.__mNumJoints+1] = _aVp
-        E_mat = np.zeros( (2,self.__mNumJoints+2) )
-        E_mat[0,self.__mNumJoints] = _aEpsr
-        E_mat[1,self.__mNumJoints+1] = _aEpsp
-        H_temp = -2 * np.matmul(
-            Jq_ext.T,
-            V_mat
-        )
-        H = ( H_temp + H_temp.T ) / 2
-        H += np.matmul( Jq_ext.T, Jq_ext )
-        H += np.matmul( V_mat.T, V_mat )
-        H += np.matmul( E_mat.T, E_mat )
-        return H
-    # 
-
 DOFBOT = robot(
     np.array(
-    [ [ 0,  0, 1 ],
-      [ 0, -1, 0 ],
-      [ 0, -1, 0 ],
-      [ 0, -1, 0 ],
+    [ [ 0, 0, 1 ],
+      [ 1, 0, 0 ],
+      [ 1, 0, 0 ],
+      [ 1, 0, 0 ],
       [ 0,  0, 1 ] ] ),
     np.array(
-    [ [ 0,  0, 0.1075 ],
-      [ 0, 0, 0       ],
+    [ [ 0,  0, 0.06605 ],
+      [ 0, 0, 0.04145 ],
       [ 0, 0, 0.08285 ],
       [ 0, 0, 0.08285 ],
-      [ 0, 0, 0.20842 ], ] )
-)
-
-DOFBOT_test = robot(
-    np.array(
-    [ [ 0, -1, 0 ],
-      [ 0, -1, 0 ],
-      [ 0, -1, 0 ],
-      [ 0,  0, 1 ] ] ),
-    np.array(
-    [ [ 0, 0, 0       ],
-      [ 0, 0, 0.08285 ],
-      [ 0, 0, 0.08285 ],
-      [ 0, 0, 0.12842 ] ] )
+      [ 0, 0, 0.07385+0.08 ], ] )
 )
 
 if __name__ == "__main__":
@@ -320,26 +271,21 @@ if __name__ == "__main__":
     # Perform inverse kinematics
     rate = rospy.Rate(20)
 
-    """
-    angles = DOFBOT.ik(
-        Rotation.from_euler( "xyz", [0.1,math.pi/2,0] ),
-        np.array( [ 0.2, 0, 0.2 ] ),
-        np.array( [0.1,0.1,0.1,0.1,0.1] )
-    )
-    print(angles)
-    msg = Float32MultiArray()
-    msg.data = tuple( angles ) + (0,)
-    pub.publish( msg )
-
-    exit(0)
-    """
-
     angles = np.array( [0,0,0,0,0] )
-    count = 1
+    _lambda = 0
+    _incr = 0.001
 
     print( DOFBOT.fk( angles ) )
 
+    start = np.array( [-0.2,0.1,0.127] )
+    end = np.array( [0.15, 0.13, 0.1] )
+
+    jp = []
+
     while not rospy.is_shutdown():
+        if _lambda > 1 or _lambda < 0:
+            break
+            _incr *= -1
         """
         angles = DOFBOT.ik(
             Rotation.from_rotvec( [ 0.3 * math.cos( count / 10 ), -0.3 * math.sin( count / 10 ), 0 ] ),
@@ -347,21 +293,22 @@ if __name__ == "__main__":
             angles
         )
         """
-        y = 0.1 * math.sin( count / 25 )
-        if( math.fabs( y ) < 0.05 ):
-            z = math.sqrt( 0.05 ** 2 - y ** 2 )
-        else:
-            z = 0
-        x = math.sqrt( 0.25**2 - y ** 2 )
-        r0i, p0i = DOFBOT.fk(np.array([1,1.57,0,0,0]))
         angles = DOFBOT.ik(
-            3.5,
-            np.array( [ x, 0.1 * math.sin( count / 25 ), z ] ),
+#            np.array( [ x, 0.1 * math.sin( count / 25 ), z ] ),
+            ( 1 - _lambda ) * start +  _lambda * end,
             angles
         )
+        jp.append(angles)
 
         msg = Float32MultiArray()
         msg.data = tuple( angles ) + (0,)
         pub.publish( msg )
-        count += 1
-        rate.sleep()
+        #rate.sleep()
+
+        _lambda += _incr
+
+jp = np.array( jp )
+
+for i in range( 5 ):
+    plt.plot(jp[:,i])
+plt.show()
