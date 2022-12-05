@@ -1,3 +1,0 @@
-<launch>
-  <node name="image_viewer" pkg="baymax_vision" type="display.py" output="screen"/>
-</launch>

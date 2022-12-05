@@ -1,0 +1,4 @@
+<launch>
+  <node name="aruco_pose_estimation" pkg="baymax_vision" type="aruco_pose_estimation.py" output="screen"/>
+  <node name="vision_starter" pkg="baymax_vision" type="vision_starter.py" output="screen"/>
+</launch>
