@@ -15,7 +15,7 @@ from pathgen import squared_velocity_path
 
 # naive ik approach
 
-base_to_tool = [[0, 0, 0.066], 'z', [0, 0, 0.0415], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0739], 'z', [0, 0, 0.08]]
+base_to_tool = [[0, 0, 0.06605], 'z', [0, 0, 0.0415], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0828], 'x', [0, 0, 0.0739], 'z', [0, 0, 0.08]]
 dofbot_base_to_tool = tinyik.Actuator(base_to_tool)
 dofbot_base_to_tool_broadcaster = tinyik.Actuator(base_to_tool)
 
