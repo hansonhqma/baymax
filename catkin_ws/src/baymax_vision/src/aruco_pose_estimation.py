@@ -66,7 +66,7 @@ def start_vision( _ ):
 
         frame = cv.undistort(frame, calibration_matrix, distortion_coeffs, None, newcameramtx)
 
-        cleaned_frame = cv.bitwise_not(cv.inRange(frame, (0, 0, 0), (180, 255, 190)))
+        cleaned_frame = cv.bitwise_not(cv.inRange(frame, (0, 0, 0), (180, 255, 80)))
             
         if not CURRENT_TASK == 'identify_target' or TARGET_ID == None or BASE_CAM_TF == None:
             # don't need to do anything
@@ -92,7 +92,7 @@ def start_vision( _ ):
                 continue
             # estimate pose for current target id
             
-            rot_camtotarget, pos_camtotarget, _ = cv.aruco.estimatePoseSingleMarkers(corners[i], 0.045,
+            rot_camtotarget, pos_camtotarget, _ = cv.aruco.estimatePoseSingleMarkers(corners[i], 0.02794,
             calibration_matrix, distortion_coeffs)
 
             # calculate base to target tf
@@ -113,6 +113,7 @@ def start_vision( _ ):
 
 
         cvm.quickshow(frame)
+        cvm.quickshow(cleaned_frame, "cleaned_frame")
         if cv.waitKey(1) & 0xFF == ord('q'):
             break
 
