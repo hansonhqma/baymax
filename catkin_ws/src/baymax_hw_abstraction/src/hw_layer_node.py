@@ -128,7 +128,7 @@ def handle_xyz( msg:Float32MultiArray ):
     """
     xyz_paths = generate_path(
         initial_xyz,
-        msg.data[i],
+        np.array( msg.data ),
         CURRENT_OBSTACLES,
         100
     )
