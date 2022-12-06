@@ -8,7 +8,7 @@ tf_23 = np.array([[-0.08285], [0], [0]])
 tf_34 = np.array([[-0.08285], [0], [0]])
 tf_45 = np.array([[-0.07385], [0], [0]])
 tf_4cam = np.array([[-0.072], [-0.049], [0]])
-tf_5tool = np.array([[0], [0], [0.09]])
+tf_5tool = np.array([[0], [0], [0.11]])
 
 def std_rotation_x(theta):
     return np.array([[1, 0, 0], [0, np.cos(theta), -np.sin(theta)], [0, np.sin(theta), np.cos(theta)]])

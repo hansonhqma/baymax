@@ -52,6 +52,10 @@ def handle_input( msg:sensor_msgs.msg.Joy ):
     elif msg.axes[1] == 1: # reach
         task_msg.data = "reach"
         valid = True
+
+    elif msg.buttons[6] == 1: # deposit
+        task_msg.data = "deposit"
+        valid = True
     
     elif msg.buttons[7] == 1: # grasp
         task_msg.data = "grasp"

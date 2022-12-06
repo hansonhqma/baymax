@@ -26,6 +26,7 @@ BASE_ENABLE_TORQUE = "/base/set_torque"
 # preset positions
 STANDBY_JOINT_CONFIG = [0, 0.5, -0.8, -2.3, 0, 0]
 ZERO_CONFIG = [0] * 6
+DEPOSIT_JOINT_CONFIG = [0, 0.8, 0.6, 0.6, 0, 0]
 
 STANDBY_LEFT_CONFIG = [1, 0.8, -0.8, -2.3, 0, 0]
 STANDBY_RIGHT_CONFIG = [-1, 0.8, -0.8, -2.3, 0, 0]
@@ -56,6 +57,11 @@ def current_task_handler ( msg ):
         state_msg.data = ZERO_CONFIG
         state_msg.data[5] = CURRENT_JOINTS[5]
         print("Zero")
+    
+    elif CURRENT_TASK == "deposit":
+        state_msg.data = DEPOSIT_JOINT_CONFIG
+        state_msg.data[5] = CURRENT_JOINTS[5]
+        print("Deposit")
 
     elif CURRENT_TASK == "reach":
         # needs target pos msg
@@ -75,9 +81,9 @@ def current_task_handler ( msg ):
     elif CURRENT_TASK == "grasp":
         state_msg.data = [x for x in CURRENT_JOINTS]
         if state_msg.data[5] <= 0:
-            state_msg.data[5] = 1
+            state_msg.data[5] = 1.01 # close
         else:
-            state_msg.data[5] = -1
+            state_msg.data[5] = -1.5708
 
         set_joints_raw_publisher.publish(state_msg)
         return
