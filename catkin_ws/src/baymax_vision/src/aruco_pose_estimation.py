@@ -49,6 +49,8 @@ targetid_to_arucoid = {
     "yellow":3
 }
 
+ARUCO_TAG_SIZE = 0.0215 # m
+
 rospy.init_node(NODE_NAME)
 
 CAPTURE = cv.VideoCapture(0)
@@ -92,7 +94,7 @@ def start_vision( _ ):
                 continue
             # estimate pose for current target id
             
-            rot_camtotarget, pos_camtotarget, _ = cv.aruco.estimatePoseSingleMarkers(corners[i], 0.02794,
+            rot_camtotarget, pos_camtotarget, _ = cv.aruco.estimatePoseSingleMarkers(corners[i], ARUCO_TAG_SIZE,
             calibration_matrix, distortion_coeffs)
 
             # calculate base to target tf

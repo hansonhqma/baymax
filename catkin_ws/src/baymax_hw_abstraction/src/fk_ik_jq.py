@@ -46,7 +46,7 @@ class DEFAULT:
           0,
           1, 1, 1 ] )
     """
-    JOINT_LIMIT = 2
+    JOINT_LIMIT = np.pi * 0.75
 
 class robot:
     def __init__( self,
