@@ -11,6 +11,7 @@ import naive_fk
 import fk_ik_jq as kin
 
 from pathgen import squared_velocity_path
+from pathgen import generate_path
 
 # ROSpy node/msg names
 NODE_NAME = "hw_layer_node"
@@ -28,6 +29,7 @@ SET_TORQUE_MSG = "/base/set_torque"
 TASKID_TOPIC = "/base/taskid"
 
 CURRENT_ANGLES = None
+CURRENT_OBSTACLES = []
 
 def handle_read_angles( angles ):
     # publish joint angles
@@ -109,19 +111,18 @@ def handle_path( msg ):
 
 def handle_xyz( msg:Float32MultiArray ):
     global CURRENT_ANGLES
+    global CURRENT_ANGLES
     lamda_max = 100
     # get current xyz
-    initial_xyz = naive_fk.tf_base_to_tool(*(CURRENT_ANGLES[:5]))
-    # calculate delta xyz
-    delta_xyz = [msg.data[i] - initial_xyz[i] for i in range(3)]
+    R_0i, P_0i = kin.DOFBOT.fk( np.array(CURRENT_ANGLES)[:5] )
 
     # generate xyz motion profiles
-    xyz_paths = [[squared_velocity_path(0, lamda_max, delta_xyz[i]) for i in range(3)]]
-    for i in range(1, lamda_max):
-        xyz_paths.append([xyz_paths[-1][dim]+squared_velocity_path(i, lamda_max, delta_xyz[dim]) for dim in range(3)])
-    for i in range(lamda_max):
-        for dim in range(3):
-            xyz_paths[i][dim] += initial_xyz[dim]
+    xyz_paths = generate_path(
+        P_0i[-1],
+        np.array( [i for i in msg.data] ),
+        CURRENT_OBSTACLES,
+        100
+    )
 
     # ik on motion profiles to get joint motion profiles
     xyz_paths = np.array(xyz_paths).reshape((lamda_max, 3))

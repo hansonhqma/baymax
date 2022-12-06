@@ -1,0 +1,6 @@
+{
+    "C_Cpp.default.includePath": [
+        "/usr/include/opencv4",
+        "catkin_ws/src/baymax_util/include"
+    ]
+}

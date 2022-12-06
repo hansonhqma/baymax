@@ -58,7 +58,7 @@ def generate_path (
     _aNumSteps: int,
     _aAttractiveForce: float = 0.1,
     _aAlpha: float = 0.1,
-    _aEpsilonError: float = 1e-1
+    _aEpsilonError: float = 1e-4
 ):
     GradientPath = [ _aOrigin ]
     while np.linalg.norm( GradientPath[-1] - _aDestination ) >= _aEpsilonError:
@@ -149,15 +149,17 @@ if __name__=="__main__":
         0.5 ),
     ] )
     path = generate_path(
-        np.array( [-1,1,2] ),
-        np.array( [1,-1,-2] ),
+        np.array( [0,0.0648,0.2230] ),
+        np.array( [0.027,0.221,0] ),
         [],
-        25,
+        100,
     )
+    print(path)
+    print(path.shape)
 
     ax = plt.axes(projection='3d')
-    for obs in o:
-        obs.plot( ax )
+#    for obs in o:
+#        obs.plot( ax )
     ax.scatter3D(
         path[:,0],
         path[:,1],
