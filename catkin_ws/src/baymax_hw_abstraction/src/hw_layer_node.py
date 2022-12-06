@@ -85,9 +85,12 @@ def handle_move_angles( msg ):
     else:
         print( "Error, angle message invalid" )
 
-def handle_path( msg ):
+def handle_path( msg:Float32MultiArray ):
     global CURRENT_ANGLES
-    lamda_max = 100
+    if len(msg.layout.dim) > 0:
+        lamda_max = msg.layout.dim[0]
+    else:
+        lamda_max = 100
 
     joint_deltas = [msg.data[i] - CURRENT_ANGLES[i] for i in range(6)]
 

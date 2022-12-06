@@ -21,7 +21,7 @@ TASKID_TOPIC = "/base/taskid"
 BASE_SET_JOINTS_RAW_TOPIC = "/base/set_joints"
 BASE_SET_JOINTS_TOPIC = "/base/set_joints_path"
 BASE_SET_XYZ_TOPIC = "/base/set_xyz"
-BASE_SET_XYZ_OBSTABLE_TOPIC = "/base/set_xyz_obstacle"
+BASE_SET_XYZ_OBSTACLE_TOPIC = "/base/set_xyz_obstacle"
 BASE_ENABLE_TORQUE = "/base/set_torque"
 
 # preset positions
@@ -91,7 +91,6 @@ def current_task_handler ( msg ):
         
     
     elif CURRENT_TASK == 'sweep':
-        print("i was here identifying")
         while CURRENT_TASK == 'sweep':
             print("identifying...")
             current_task_id = get_new_taskid()
@@ -100,6 +99,7 @@ def current_task_handler ( msg ):
 
             # add taskid to msg and publish
             state_msg.layout.data_offset = current_task_id
+            state_msg.layout.dim = [300]
             print("running taskid {}".format(current_task_id))
             set_joints_publisher.publish(state_msg)
             # while task is still open, sleep
@@ -117,6 +117,7 @@ def current_task_handler ( msg ):
 
             # add taskid to msg and publish
             state_msg.layout.data_offset = current_task_id
+            state_msg.layout.dim = [300]
             print("running taskid {}".format(current_task_id))
             set_joints_publisher.publish(state_msg)
             # while task is still open, sleep
@@ -161,7 +162,7 @@ set_joints_publisher = rospy.Publisher(BASE_SET_JOINTS_TOPIC, std_msgs.msg.Float
 set_joints_raw_publisher = rospy.Publisher(BASE_SET_JOINTS_RAW_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
 enable_torque_publisher = rospy.Publisher(BASE_ENABLE_TORQUE, std_msgs.msg.Bool, queue_size=1)
 set_xyz_publisher = rospy.Publisher(BASE_SET_XYZ_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
-set_xyz_obstacle_publisher = rospy.Publisher(BASE_SET_XYZ_OBSTABLE_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
+set_xyz_obstacle_publisher = rospy.Publisher(BASE_SET_XYZ_OBSTACLE_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
 
 torque_on = std_msgs.msg.Bool()
 torque_on.data = "true"
