@@ -72,8 +72,7 @@ def generate_path (
 
     GradientPath = np.array( GradientPath )
 
-    print( GradientPath )
-
+    """
 #    for i in range( 3 ):
 #        plt.plot( GradientPath[:,i] )
 #    plt.show()
@@ -87,16 +86,13 @@ def generate_path (
     )
     ax.set_aspect('equal')
     plt.show()
+    """
 
     PathDistance = 0
     for i in range( 1, GradientPath.shape[0] ):
         PathDistance += np.linalg.norm( GradientPath[i-1] - GradientPath[i] )
 
-    print(PathDistance)
-
     RealPath = [ _aOrigin ]
-
-    print(np.linalg.norm(GradientPath[0]-GradientPath[1]))
 
     i = 1
     for j in range(0, _aNumSteps):
@@ -118,6 +114,7 @@ def generate_path (
 
     RealPath = np.array( RealPath )
 
+    """
     print(RealPath)
 
     ax = plt.axes(projection='3d')
@@ -130,6 +127,9 @@ def generate_path (
     )
     ax.set_aspect('equal')
     plt.show()
+    """
+
+    return RealPath
 
 #    for i in range( 3 ):
 #        plt.plot( RealPath[:,i] )
@@ -148,9 +148,20 @@ if __name__=="__main__":
         0.1,
         0.5 ),
     ] )
-    generate_path(
+    path = generate_path(
         np.array( [-1,1,2] ),
         np.array( [1,-1,-2] ),
-        o,
-        100,
+        [],
+        25,
     )
+
+    ax = plt.axes(projection='3d')
+    for obs in o:
+        obs.plot( ax )
+    ax.scatter3D(
+        path[:,0],
+        path[:,1],
+        path[:,2]
+    )
+    ax.set_aspect('equal')
+    plt.show()
