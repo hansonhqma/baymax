@@ -21,6 +21,7 @@ TASKID_TOPIC = "/base/taskid"
 BASE_SET_JOINTS_RAW_TOPIC = "/base/set_joints"
 BASE_SET_JOINTS_TOPIC = "/base/set_joints_path"
 BASE_SET_XYZ_TOPIC = "/base/set_xyz"
+BASE_SET_XYZ_OBSTABLE_TOPIC = "/base/set_xyz_obstacle"
 BASE_ENABLE_TORQUE = "/base/set_torque"
 
 # preset positions
@@ -41,7 +42,7 @@ CURRENT_JOINTS = None
 def current_task_handler ( msg ):
     global CURRENT_TASK
     # update current task
-    if msg.data == CURRENT_TASK and not msg.data == "grasp":
+    if msg.data == CURRENT_TASK and not msg.data == "grasp" or msg.data == "identify_target":
         # redundant except for grasp
         return
 
@@ -160,6 +161,7 @@ set_joints_publisher = rospy.Publisher(BASE_SET_JOINTS_TOPIC, std_msgs.msg.Float
 set_joints_raw_publisher = rospy.Publisher(BASE_SET_JOINTS_RAW_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
 enable_torque_publisher = rospy.Publisher(BASE_ENABLE_TORQUE, std_msgs.msg.Bool, queue_size=1)
 set_xyz_publisher = rospy.Publisher(BASE_SET_XYZ_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
+set_xyz_obstacle_publisher = rospy.Publisher(BASE_SET_XYZ_OBSTABLE_TOPIC, std_msgs.msg.Float32MultiArray, queue_size=1)
 
 torque_on = std_msgs.msg.Bool()
 torque_on.data = "true"
