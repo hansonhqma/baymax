@@ -153,7 +153,7 @@
         <limit effort="30" velocity="1.0" lower="-1.5708" upper="3.1416"/>
     </joint>
     <joint name="tool" type="fixed">
-        <origin xyz="0 0 0.09" rpy="0 0 0" />
+        <origin xyz="0 0 0.11" rpy="0 0 0" />
         <parent link="link5" />
         <child link="link_tool" />
     </joint>

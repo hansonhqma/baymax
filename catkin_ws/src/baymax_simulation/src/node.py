@@ -6,6 +6,7 @@ import rospy
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Header
 import threading
+import pid
 
 from pathgen import squared_velocity_path
 
@@ -17,6 +18,7 @@ NODE_NAME = "smbus_sim_node"
 READ_JOINT_MSG = "/base/read_joints"
 SET_JOINT_MSG = "/base/set_joints"
 SET_JOINT_PATH_MSG = "/base/set_joints_path"
+SET_JOINT_PID_MSG = "/base/set_joints_pid"
 SET_XYZ_MSG = "/base/set_xyz"
 SET_JOINT_STEP = "/base/set_joints_step"
 
@@ -36,6 +38,34 @@ def handle_write_step( msg ):
 
     new_joints = [(msg.data[i] + joints[i])%(2*math.pi) for i in range(6)]
     joints = new_joints
+
+def handle_pid( msg ):
+    #time.sleep(2)
+    global joints
+    coeffs = (0.01, 0.01, 0.4)
+    step = 0.1 # rad
+    # make controllers with desired positions
+    joint_controllers = []
+    convergence = []
+    for i in range(6):
+        jpos = msg.data[i]
+        joint_controllers.append(pid.controller(*coeffs, target=jpos, epsilon=5e-3))
+        convergence.append(joint_controllers[i]._converged)
+
+    # while all not converged
+    paths_pid = []
+    while False in convergence:
+        new_angles = []
+        for i in range(6):
+            joint_gain = joint_controllers[i].gain(joints[i])
+            new_angles.append(joints[i] + step*joint_gain)
+            convergence[i] = joint_controllers[i]._converged
+        paths_pid.append(new_angles)
+        joints = [x for x in new_angles]
+        rate.sleep()
+    print("writing paths")
+    np.save("/home/hanson/baymax/pid_paths.npy", np.array(paths_pid))
+    
 
 def handle_path( msg ):
     global joints
@@ -96,6 +126,7 @@ rate = rospy.Rate(50)
 pub = rospy.Publisher( READ_JOINT_MSG, Float32MultiArray, queue_size=10 )
 rospy.Subscriber( SET_JOINT_MSG, Float32MultiArray, handle_write_angles )
 rospy.Subscriber( SET_JOINT_PATH_MSG, Float32MultiArray, handle_path )
+rospy.Subscriber( SET_JOINT_PID_MSG, Float32MultiArray, handle_pid )
 rospy.Subscriber( SET_JOINT_STEP, Float32MultiArray, handle_write_step )
 rospy.Subscriber( SET_XYZ_MSG, Float32MultiArray, handle_xyz )
 

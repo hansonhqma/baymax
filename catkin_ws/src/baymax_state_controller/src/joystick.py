@@ -57,8 +57,16 @@ def handle_input( msg:sensor_msgs.msg.Joy ):
         task_msg.data = "deposit"
         valid = True
     
-    elif msg.buttons[7] == 1: # grasp
+    elif msg.buttons[4] == 1: # grasp
         task_msg.data = "grasp"
+        valid = True
+
+    elif msg.buttons[5] == 1: # sweep
+        task_msg.data = "sweep"
+        valid = True
+
+    elif msg.buttons[9] == 1: # YAYYYYY DANCE!!!
+        task_msg.data = "dance"
         valid = True
 
     if valid:

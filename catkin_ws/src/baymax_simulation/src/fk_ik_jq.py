@@ -37,6 +37,8 @@ class DEFAULT:
     # The last term corresponds to yaw error,
     # which is ignored since it is impossible to
     # fix based on the construction of the dofbot
+    #
+    # *** Removed since we are not controlling rotation ***
     """
     BETA = np.array( 
         [ 0.1 / ( math.pi / 4 ),
@@ -44,42 +46,7 @@ class DEFAULT:
           0,
           1, 1, 1 ] )
     """
-    BETA = np.array(
-        [0,
-        0.01,
-        0,
-        1,
-        1,
-        1]
-    )
-    JOINT_LIMIT = math.pi * 0.75
-
-def print_pose( _aRot, _aTrans, _aID ):
-    m = Marker()
-    m.header.frame_id = "base_link"
-    m.header.stamp = rospy.get_rostime()
-    m.ns = "robot"
-    m.id = 0
-    m.type = 0
-    m.action = 0
-    quat = ( _aRot * Rotation.from_rotvec( [ 0, -math.pi/2, 0 ] ) ).as_quat()
-    m.pose = Pose(
-        position=Point( 
-            x=_aTrans[0],
-            y=_aTrans[1],
-            z=_aTrans[2]
-        ),
-        orientation=Quaternion(
-            quat[0],
-            quat[1],
-            quat[2],
-            quat[3]
-        )
-    )
-    m.scale = Vector3( x=0.1, y=0.01, z=0.01 )
-    m.color.a = 1
-    m.color.b = 1
-    marker_pub.publish(m)
+    JOINT_LIMIT = np.pi * 0.75
 
 class robot:
     def __init__( self,
@@ -182,8 +149,7 @@ class robot:
             _aIterations=DEFAULT.ITERATIONS,
             _aAlpha=DEFAULT.ALPHA,
             _aEpsilonRegularization=DEFAULT.EPSILON_REGULARIZATION,
-            _aEpsilonError=DEFAULT.EPSILON_ERROR,
-            _aBeta=DEFAULT.BETA ):
+            _aEpsilonError=DEFAULT.EPSILON_ERROR ):
         angles = _aStartingAngles
         last_error = None
 
@@ -200,7 +166,7 @@ class robot:
             curr_err = np.linalg.norm( P_err )
 
             if last_error is not None:
-                if last_error - curr_err < _aEpsilonError / 10000:
+                if last_error - curr_err < curr_err / 10000:
                     print("Not converging...")
                     for i in range(0, self.__mNumJoints):
                         angles[i] = random.uniform( self.__mLowerLimit[i], self.__mUpperLimit[i] )
@@ -240,6 +206,11 @@ class robot:
                     angles[i] = self.__mUpperLimit[i]
                 elif angles[i] < self.__mLowerLimit[i]:
                     angles[i] = self.__mLowerLimit[i]
+            
+            #msg = Float32MultiArray()
+            #msg.data = tuple( angles ) + (0,)
+            #pub.publish( msg )
+            #rate.sleep()
 
         raise Exception( "Could not converge!" )
 
@@ -255,7 +226,7 @@ DOFBOT = robot(
       [ 0, 0, 0.04145 ],
       [ 0, 0, 0.08285 ],
       [ 0, 0, 0.08285 ],
-      [ 0, 0, 0.07385+0.08 ], ] )
+      [ 0, 0, 0.07385+0.11 ], ] )
 )
 
 if __name__ == "__main__":
@@ -268,16 +239,15 @@ if __name__ == "__main__":
     marker_pub = rospy.Publisher( "robotMarker", Marker, queue_size=10 )
 
     # Perform inverse kinematics
-    rate = rospy.Rate(20)
+    rate = rospy.Rate(5)
 
-    angles = np.array( [0,0,0,0,0] )
+    angles = np.array( [0,0.7,-0.8,-2,0] )
     _lambda = 0
     _incr = 0.001
 
-    print( DOFBOT.fk( angles ) )
-
-    start = np.array( [-0.2,0.1,0.127] )
-    end = np.array( [0.15, 0.13, 0.1] )
+    start = DOFBOT.fk(angles)[-1][-1]
+    end = np.array( [0.15, 0.15, 0.1] )
+    angles = np.array( [0,-1,-1,2,0] )
 
     jp = []
 
@@ -292,11 +262,12 @@ if __name__ == "__main__":
             angles
         )
         """
+        t = time.clock_gettime(0)
         angles = DOFBOT.ik(
-#            np.array( [ x, 0.1 * math.sin( count / 25 ), z ] ),
             ( 1 - _lambda ) * start +  _lambda * end,
             angles
         )
+        print( f"Time: {time.clock_gettime(0)-t}" )
         jp.append(angles)
 
         msg = Float32MultiArray()
@@ -305,4 +276,3 @@ if __name__ == "__main__":
         #rate.sleep()
 
         _lambda += _incr
-
