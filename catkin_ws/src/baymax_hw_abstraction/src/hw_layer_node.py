@@ -9,7 +9,7 @@ import geometry_msgs.msg
 import numpy as np
 import naive_fk
 import fk_ik_jq as kin
-
+import pathgen
 from pathgen import squared_velocity_path
 from pathgen import generate_path
 
@@ -29,7 +29,7 @@ SET_TORQUE_MSG = "/base/set_torque"
 TASKID_TOPIC = "/base/taskid"
 
 CURRENT_ANGLES = None
-CURRENT_OBSTACLES = []
+CURRENT_OBSTACLES = [pathgen.obstacle(np.array([0,0.2,0]),0.07)]
 
 def handle_read_angles( angles ):
     # publish joint angles
@@ -91,7 +91,8 @@ def handle_path( msg ):
     global CURRENT_ANGLES
     lamda_max = 100
 
-    joint_deltas = [msg.data[i] - CURRENT_ANGLES[i] for i in range(6)]
+    joint_deltas = [msg
+.data[i] - CURRENT_ANGLES[i] for i in range(6)]
 
     paths = [[squared_velocity_path(0, lamda_max, joint_deltas[i]) for i in range(6)]]
     for i in range(1, lamda_max):
@@ -117,26 +118,32 @@ def handle_xyz( msg:Float32MultiArray ):
     R_0i, P_0i = kin.DOFBOT.fk( np.array(CURRENT_ANGLES)[:5] )
 
     # generate xyz motion profiles
-    xyz_paths = generate_path(
-        P_0i[-1],
-        np.array( [i for i in msg.data] ),
-        CURRENT_OBSTACLES,
-        100
-    )
+    try:
+        xyz_paths = generate_path(
+            P_0i[-1],
+            np.array( [i for i in msg.data] ),
+            CURRENT_OBSTACLES,
+            100
+        )
+    except pathgen.PathGenFailure as e:
+        rospy.logerr(e)
+        xyz_paths = []
 
     # ik on motion profiles to get joint motion profiles
-    xyz_paths = np.array(xyz_paths).reshape((lamda_max, 3))
     joint_paths = []
     recent_config = [x for x in CURRENT_ANGLES[:5]]
-    for i in range(len(xyz_paths)):
-        angles = kin.DOFBOT.ik(xyz_paths[i], np.array(recent_config))
-        recent_config = [x for x in angles]
-        joint_paths.append(list(angles)+[CURRENT_ANGLES[5]])
-
-    # move
-    for jpos in joint_paths:
-        arm.set_joints(jpos)
-        rate.sleep()
+    try:
+        for i in range(len(xyz_paths)):
+            angles = kin.DOFBOT.ik(xyz_paths[i], np.array(recent_config))
+            recent_config = [x for x in angles]
+            joint_paths.append(list(angles)+[CURRENT_ANGLES[5]])
+	    # move
+        np.save("/home/jetson/JointPaths.npy", joint_paths)
+        for jpos in joint_paths:
+            arm.set_joints(jpos)
+            rate.sleep()
+    except kin.ConvergenceFailure as e:
+        rospy.logerr(e)
     
     # publish completed task id
     completed_task_id_msg = Int32()

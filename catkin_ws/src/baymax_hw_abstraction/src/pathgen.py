@@ -27,7 +27,7 @@ class obstacle:
         self,
         _aOrigin: np.ndarray,
         _aRadius: float,
-        _aRepulsiveFactor: float = 0.1,
+        _aRepulsiveFactor: float = 0.005,
         _aBufferSize: float = 0.05
     ):
         self.__Origin = _aOrigin
@@ -51,17 +51,25 @@ class obstacle:
     def plot( self, ax ):
         plt_sphere( ax, self.__Origin, self.__Radius )
 
+class PathGenFailure(Exception):
+    pass
+
 def generate_path (
     _aOrigin: np.ndarray,
     _aDestination: np.ndarray,
     _aObstacles: typing.List[ obstacle ],
     _aNumSteps: int,
-    _aAttractiveForce: float = 0.1,
-    _aAlpha: float = 0.1,
-    _aEpsilonError: float = 1e-4
+    _aAttractiveForce: float = 1,
+    _aAlpha: float = 0.01,
+    _aEpsilonError: float = 1e-4,
+    _aIterations: int = 10000
 ):
     GradientPath = [ _aOrigin ]
+    count = 0
     while np.linalg.norm( GradientPath[-1] - _aDestination ) >= _aEpsilonError:
+        count += 1
+        if count > _aIterations:
+            raise PathGenFailure( f"Failed to generate path in {_aIterations} iterations, there may be an obstacle in the way" )
         Force = -_aAttractiveForce * ( GradientPath[-1] - _aDestination )
 
         for obstacle in _aObstacles:
@@ -72,21 +80,7 @@ def generate_path (
 
     GradientPath = np.array( GradientPath )
 
-    """
-#    for i in range( 3 ):
-#        plt.plot( GradientPath[:,i] )
-#    plt.show()
-    ax = plt.axes(projection='3d')
-    for o in _aObstacles:
-        o.plot( ax )
-    ax.scatter3D(
-        GradientPath[:,0],
-        GradientPath[:,1],
-        GradientPath[:,2]
-    )
-    ax.set_aspect('equal')
-    plt.show()
-    """
+    np.save("/home/jetson/GradientPath.npy", GradientPath)
 
     PathDistance = 0
     for i in range( 1, GradientPath.shape[0] ):
@@ -114,20 +108,7 @@ def generate_path (
 
     RealPath = np.array( RealPath )
 
-    """
-    print(RealPath)
-
-    ax = plt.axes(projection='3d')
-    for o in _aObstacles:
-        o.plot( ax )
-    ax.scatter3D(
-        RealPath[:,0],
-        RealPath[:,1],
-        RealPath[:,2]
-    )
-    ax.set_aspect('equal')
-    plt.show()
-    """
+    np.save("/home/jetson/RealPath.npy", RealPath)
 
     return RealPath
 

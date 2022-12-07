@@ -13,7 +13,7 @@ from geometry_msgs.msg import Quaternion
 from geometry_msgs.msg import Vector3
 
 class DEFAULT:
-    ITERATIONS = 2000000
+    ITERATIONS = 1000
     # Learning rate
     ALPHA = 1
     # Used for damped least squares method
@@ -47,6 +47,9 @@ class DEFAULT:
           1, 1, 1 ] )
     """
     JOINT_LIMIT = 2
+
+class ConvergenceFailure(Exception):
+    pass
 
 class robot:
     def __init__( self,
@@ -212,7 +215,7 @@ class robot:
             #pub.publish( msg )
             #rate.sleep()
 
-        raise Exception( "Could not converge!" )
+        raise ConvergenceFailure( f"Could not converge after {_aIterations} iterations!" )
 
 DOFBOT = robot(
     np.array(
