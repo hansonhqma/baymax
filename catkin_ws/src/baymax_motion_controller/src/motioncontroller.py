@@ -119,8 +119,7 @@ def current_task_handler ( msg ):
         return
     
     elif CURRENT_TASK == 'sweep':
-        #while CURRENT_TASK == 'sweep':
-        for i in range(1):
+        while CURRENT_TASK == 'sweep':
             print("identifying...")
             current_task_id = get_new_taskid()
             OPEN_TASKS_IDS.add(current_task_id)

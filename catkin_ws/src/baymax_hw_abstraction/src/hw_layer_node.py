@@ -88,7 +88,7 @@ def handle_move_angles( msg ):
 def handle_path( msg:Float32MultiArray ):
     global CURRENT_ANGLES
     if len(msg.layout.dim) > 0:
-        lamda_max = msg.layout.dim[0]
+        lamda_max = msg.layout.dim[0].size
     else:
         lamda_max = 100
 

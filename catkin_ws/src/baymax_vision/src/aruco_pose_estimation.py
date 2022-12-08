@@ -12,9 +12,7 @@ import cv2 as cv
 import cvmanip as cvm
 import numpy as np
 
-
 from scipy.spatial.transform import Rotation
-
 
 # node info
 NODE_NAME = "baymax_vision"
@@ -110,8 +108,6 @@ def start_vision( _ ):
         for i in range(len(corners)):
             frame = cv.aruco.drawDetectedMarkers(frame, corners)
             id = ids[i][0]
-            #if not arucoid == id:
-                #continue
             
             # estimate pose for current target id
             
@@ -171,8 +167,6 @@ def start_vision( _ ):
 
             if arucoid == id:
                 frame = cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, pos_camtotarget, 0.01)
-            #cleaned_frame = cv.cvtColor(cleaned_frame, cv.COLOR_GRAY2RGB)
-            #cleaned_frame = cv.drawFrameAxes(cleaned_frame, calibration_matrix, distortion_coeffs, rot_camtotarget, pos_camtotarget, 0.01)
 
 
         cvm.quickshow(frame)

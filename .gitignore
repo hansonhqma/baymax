@@ -2,6 +2,6 @@
 **/devel/
 **/misc/
 **/*.mp4
-**/*.png/
-**/*.pyc/
+**/*.png
+**/*.pyc
 *.catkin_workspace
