@@ -68,9 +68,14 @@ arucoid_to_rviz_color = {
 
 ARUCO_TAG_SIZE = 0.0215 # m
 
+preprocess_hsv_min = (0, 0, 0)
+preprocess_hsv_max = (180, 255, 80)
+
 rospy.init_node(NODE_NAME)
 
-CAPTURE = cv.VideoCapture(4)
+# start video capture
+CAPTURE_SOURCE = 0 # first device on dofbot
+CAPTURE = cv.VideoCapture(CAPTURE_SOURCE)
 
 w, h = 640, 480
 
@@ -85,16 +90,15 @@ def start_vision( _ ):
 
         frame = cv.undistort(frame, calibration_matrix, distortion_coeffs, None, newcameramtx)
 
-        cleaned_frame = cv.bitwise_not(cv.inRange(frame, (0, 0, 0), (180, 255, 80)))
+        preprocessed_frame = cv.bitwise_not(cv.inRange(frame, preprocess_hsv_min, preprocess_hsv_max))
             
         if CURRENT_TASK == 'zero' or TARGET_ID == None or BASE_CAM_TF == None:
             # don't need to do anything
             cvm.quickshow(frame)
-            cvm.quickshow(cleaned_frame, "cleaned_frame")
             continue
 
         print("looking for {} marker".format(TARGET_ID))
-        corners, ids, _ = cv.aruco.detectMarkers(cleaned_frame, aruco_dict, parameters=aruco_params)
+        corners, detected_ids, _ = cv.aruco.detectMarkers(preprocessed_frame, aruco_dict, parameters=aruco_params)
 
         arucoid = targetid_to_arucoid.get(TARGET_ID)
 
@@ -107,7 +111,7 @@ def start_vision( _ ):
 
         for i in range(len(corners)):
             frame = cv.aruco.drawDetectedMarkers(frame, corners)
-            id = ids[i][0]
+            current_id = detected_ids[i][0]
             
             # estimate pose for current target id
             
@@ -124,7 +128,7 @@ def start_vision( _ ):
 
             # take care of actual tf before marker tf
             tf_msg = geometry_msgs.msg.PoseStamped()
-            tf_msg.header.frame_id = arucoid_to_targetid.get(id)
+            tf_msg.header.frame_id = arucoid_to_targetid.get(current_id)
             tf_msg.pose.position.x = pos_basetotarget[0][0]
             tf_msg.pose.position.y = pos_basetotarget[1][0]
             tf_msg.pose.position.z = pos_basetotarget[2][0]
@@ -133,8 +137,8 @@ def start_vision( _ ):
 
             btt_marker_msg = visualization_msgs.msg.Marker()
             ctt_marker_msg = visualization_msgs.msg.Marker()
-            btt_marker_msg.id = id
-            ctt_marker_msg.id = id*10
+            btt_marker_msg.id = current_id
+            ctt_marker_msg.id = current_id*10
             btt_marker_msg.type = 1
             ctt_marker_msg.type = 2
 
@@ -145,8 +149,8 @@ def start_vision( _ ):
                 msg.scale.x = 0.025
                 msg.scale.y = 0.025
                 msg.scale.z = 0.025
-                tag_color = arucoid_to_rviz_color.get(id)
-                if arucoid == id:
+                tag_color = arucoid_to_rviz_color.get(current_id)
+                if arucoid == current_id:
                     msg.color.a = 1
                 else:
                     msg.color.a = 0.5
@@ -165,17 +169,13 @@ def start_vision( _ ):
             btt_marker_publisher.publish(btt_marker_msg)
             ctt_marker_publisher.publish(ctt_marker_msg)
 
-            if arucoid == id:
+            if arucoid == current_id:
                 frame = cv.drawFrameAxes(frame, calibration_matrix, distortion_coeffs, rot_camtotarget, pos_camtotarget, 0.01)
 
 
         cvm.quickshow(frame)
-        cvm.quickshow(cleaned_frame, "cleaned_frame")
         if cv.waitKey(1) & 0xFF == ord('q'):
             break
-
-    # look for specific aruco marker
-    # publish tf
 
 def current_task_handler ( msg ):
     # update current task
@@ -192,13 +192,14 @@ def base_cam_tf_handler( msg ):
     global BASE_CAM_TF
     BASE_CAM_TF = msg
 
-
 rospy.Subscriber(CURRENT_TASK_TOPIC, std_msgs.msg.String, current_task_handler)
 rospy.Subscriber(TARGET_ID_TOPIC, std_msgs.msg.String, target_id_handler)
 rospy.Subscriber(BASE_CAM_TF_TOPIC, geometry_msgs.msg.Pose, base_cam_tf_handler)
 rospy.Subscriber(VISION_START_TOPIC, std_msgs.msg.String, start_vision)
+
 target_tf_publisher = rospy.Publisher(TARGET_POS_TF, geometry_msgs.msg.PoseStamped, queue_size=1)
 ctt_marker_publisher = rospy.Publisher(CAM_TO_TARGET_MARKER, visualization_msgs.msg.Marker, queue_size = 10)
 btt_marker_publisher = rospy.Publisher(BASE_TO_TARGET_MARKER, visualization_msgs.msg.Marker, queue_size = 10)
+
 rospy.spin()
 
